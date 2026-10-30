@@ -124,7 +124,9 @@ cd ..\Backend
 npm test
 ```
 
-## AWS deployment
+## Step-by-step AWS deployment guide
+
+Follow these steps in order to deploy the API, frontend, database, and file storage. This setup uses EC2 for the API, S3 with CloudFront for the static frontend, MongoDB Atlas for the database, and Cloudinary for uploaded files (unless an S3 upload adapter is added).
 
 ### Recommended AWS layout
 
@@ -135,14 +137,14 @@ npm test
 
 > **Production configuration required:** All frontend API constants currently point to `http://localhost:5000`. Before building for AWS, change them to the HTTPS API origin (for example, `https://api.example.com/api/v1/...`) or refactor them to use a Vite environment variable. Otherwise, a deployed browser will try to contact the visitor's own computer instead of EC2.
 
-### 1. Prepare MongoDB Atlas
+### Step 1: Prepare MongoDB Atlas
 
 1. Create a MongoDB Atlas cluster in an AWS region close to the application.
 2. Create a database user with only the permissions the application needs.
 3. Configure Atlas network access to permit the EC2 instance's outbound IP. Avoid allowing access from every IP address in production.
 4. Copy the application connection string and set it as `MONGO_URI` in the backend environment. URL-encode special characters in the database password.
 
-### 2. Launch and configure EC2
+### Step 2: Launch and configure EC2
 
 1. Launch an Ubuntu EC2 instance, restrict SSH (port 22) to your administrator IP, and allow inbound HTTPS (443). Allow HTTP (80) only if it is used for HTTPS redirection or certificate validation.
 2. Install Node.js 20.19+ and Nginx. Clone the repository and configure the backend:
@@ -208,7 +210,7 @@ npm test
 
    Then install a TLS certificate (for example, with Let's Encrypt) and redirect HTTP to HTTPS. Keep port 5000 private to the instance; expose only the Nginx HTTPS endpoint.
 
-### 3. Build and publish the frontend to S3
+### Step 3: Build and publish the frontend to S3
 
 1. On a trusted build machine or CI runner with Node.js and AWS CLI, update all API URLs in `Frontend/src/utils/constant.js` to use the API's HTTPS origin.
 2. From the repository root, build the static frontend:
@@ -230,7 +232,7 @@ npm test
    Run the AWS CLI commands from the build/deployment environment using a narrowly scoped IAM role or deployment credentials with access only to the frontend bucket and CloudFront invalidations. Do not make the bucket public just to serve the site; CloudFront OAC can read from a private bucket.
 5. Point `app.example.com` at CloudFront and `api.example.com` at the EC2/Nginx endpoint. Configure Nginx and CloudFront TLS certificates and ensure `FRONTEND_URL` exactly matches the deployed frontend origin. The frontend already sends credentialed Axios requests; keep the API CORS allowlist restricted to the frontend origin.
 
-### 4. File storage and operational notes
+### Step 4: Configure file storage and production checks
 
 - **Current implementation:** Cloudinary is used when all three Cloudinary settings are present; otherwise the backend writes files to `Backend/uploads/` and serves them under `/uploads`. A local EC2 disk is not a durable or shared upload store.
 - **If S3 is required for uploads:** Implement an S3 adapter in `Backend/utils/fileStorage.js`, grant the EC2 instance role access only to the intended bucket/prefix, and configure private-object access and download authorization. The current `.env` example and code do not configure this integration.
