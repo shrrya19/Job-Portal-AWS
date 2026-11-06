@@ -34,7 +34,7 @@ The frontend is in `Frontend/`; the API is in `Backend/`. The backend mounts rou
 
 ## Implemented features
 
-- **Accounts and profiles:** Student/recruiter registration and login, password hashing, JWT authentication, profile updates, and student saved jobs. The API issues an HTTP-only cookie and returns a token that the frontend also stores in local storage and sends as a bearer token.
+- **Accounts and profiles:** Student/recruiter registration and login, signup passwords that start with an uppercase letter and include a number and symbol, password hashing, JWT authentication, profile updates, and student saved jobs. The API issues an HTTP-only cookie and returns a token that the frontend also stores in local storage and sends as a bearer token.
 - **Job search and applications:** Browse jobs and internships, view job details, search/filter job listings, apply to jobs, and view saved or applied jobs.
 - **Recruiter tools:** Register and update a company, post and manage jobs, view applicants, and update application status.
 - **Events:** Browse event listings and details. Recruiter event endpoints support creating, updating, and deleting events.

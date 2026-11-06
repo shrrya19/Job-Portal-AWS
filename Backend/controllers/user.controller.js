@@ -6,6 +6,8 @@ import cloudinary from "../utils/cloudinary.js";
 import { Job } from "../models/job.model.js";
 import { storeImageSecurely, storeFileSecurely } from "../utils/fileStorage.js";
 
+const passwordRequirements = /^[A-Z](?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
+
 const getCookieOptions = () => ({
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
@@ -47,6 +49,13 @@ export const register = async (req, res) => {
         if (!fullName || !email || !phoneNumber || !password || !role) {
             return res.status(400).json({
                 message: "All fields are required",
+                success: false
+            });
+        }
+
+        if (!passwordRequirements.test(password)) {
+            return res.status(400).json({
+                message: "Password must start with an uppercase letter and include at least one number and symbol.",
                 success: false
             });
         }

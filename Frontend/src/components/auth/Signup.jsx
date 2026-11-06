@@ -20,6 +20,8 @@ import {
 } from "lucide-react";
 import { motion } from "framer-motion";
 
+const PASSWORD_REQUIREMENTS = /^[A-Z](?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
+
 const Signup = () => {
   const [input, setInput] = useState({
     fullName: "",
@@ -72,6 +74,13 @@ const Signup = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+
+    if (!PASSWORD_REQUIREMENTS.test(input.password)) {
+      toast.error(
+        "Password must start with an uppercase letter and include at least one number and symbol."
+      );
+      return;
+    }
 
     const digitsOnly = input.phoneNumber.replace(/\D/g, "");
     if (digitsOnly.length < 10) {
@@ -276,12 +285,16 @@ const Signup = () => {
                         name="password"
                         value={input.password}
                         onChange={changeEventHandler}
-                        placeholder="Enter your password"
+                        placeholder="Start with a capital letter"
                         className="pl-10 h-12 rounded-xl"
+                        autoComplete="new-password"
                         required
                       />
 
                     </div>
+                    <p className="mt-1 text-xs text-gray-500">
+                      Start with an uppercase letter and include at least one number and symbol.
+                    </p>
                   </div>
 
                   {/* Role Selection */}
