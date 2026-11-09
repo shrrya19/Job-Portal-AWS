@@ -1,4 +1,3 @@
-import React from 'react'
 import axios from "axios";
 import { USER_API_ENDPOINT } from "@/utils/constant";
 import { toast } from "sonner";
@@ -54,7 +53,7 @@ const Job = ({ job }) => {
                     <h1 className="font-bold text-lg text-gray-900">{job?.company?.name}</h1>
                     <div className="flex items-center gap-1 text-sm text-gray-500">
                         <MapPin className="w-3 h-3" />
-                        <span>{job?.location || "India"}</span>
+                        <span>{job?.locations?.join(", ") || job?.location || "India"}</span>
                     </div>
                 </div>
             </div>

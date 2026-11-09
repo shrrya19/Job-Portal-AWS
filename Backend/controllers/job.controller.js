@@ -18,20 +18,31 @@ const getSearchPatterns = (token) => {
     return [...patterns];
 };
 const jobTypes = ["Full-Time", "Contract", "Internship"];
-const DUPLICATE_JOB_MESSAGE =
-    "Duplicate Job Posting! A job with the same Job Title, Job ID, Experience, and Company already exists. Please check the existing job listings before creating a new job.";
+const DUPLICATE_JOB_ID_MESSAGE = "This Job ID is already in use. Enter a unique Job ID.";
 const normalizeIdentityValue = (value) =>
     value.trim().replace(/\s+/g, " ").toLowerCase();
 const isValidJobId = (value) =>
     typeof value === "string" && /^[A-Za-z0-9][A-Za-z0-9_-]{2,49}$/.test(value.trim());
-const duplicateJobQuery = ({ company, title, jobId, experienceLevel, excludeId }) => ({
-    company,
-    titleNormalized: normalizeIdentityValue(title),
-    jobIdNormalized: normalizeIdentityValue(jobId),
-    experienceLevel,
+const duplicateJobIdQuery = (jobId, excludeId) => ({
+    $or: [
+        { jobIdNormalized: normalizeIdentityValue(jobId) },
+        { jobIdLegacyNormalized: normalizeIdentityValue(jobId) },
+    ],
     ...(excludeId ? { _id: { $ne: excludeId } } : {}),
 });
 const isDuplicateKeyError = (error) => error?.code === 11000;
+const canonicalizeJobLocations = (locations, fallbackLocation) => {
+    const candidates = Array.isArray(locations) && locations.length
+        ? locations
+        : [fallbackLocation];
+    if (!candidates.length) return null;
+    const normalizedLocations = candidates.map((location) => canonicalizeIndiaLocation(location));
+    if (normalizedLocations.some((location) => !location)) return null;
+    const canonicalLocations = [...new Set(normalizedLocations)];
+    if (!canonicalLocations.length) return null;
+    if (canonicalLocations.includes("Remote") && canonicalLocations.length > 1) return null;
+    return canonicalLocations;
+};
 
 // Here you see posted jobs by Admin
 export const postJob = async (req, res) => {
@@ -42,6 +53,7 @@ export const postJob = async (req, res) => {
             requirements,
             salary,
             location,
+            locations,
             jobType,
             experience,
             jobId,
@@ -72,8 +84,7 @@ export const postJob = async (req, res) => {
             typeof description !== "string" ||
             !description.trim() ||
             requirementsArray.every((requirement) => !String(requirement).trim()) ||
-            typeof location !== "string" ||
-            !location.trim() ||
+            (!Array.isArray(locations) && (typeof location !== "string" || !location.trim())) ||
             !jobTypes.includes(normalizedJobType) ||
             !Number.isFinite(parsedSalary) ||
             parsedSalary < 0 ||
@@ -89,9 +100,9 @@ export const postJob = async (req, res) => {
             });
         }
 
-        const canonicalLocation = canonicalizeIndiaLocation(location);
+        const canonicalLocations = canonicalizeJobLocations(locations, location);
         if (
-            !canonicalLocation ||
+            !canonicalLocations ||
             (country !== undefined && String(country).trim().toLowerCase() !== "india")
         ) {
             return res.status(400).json({
@@ -114,15 +125,10 @@ export const postJob = async (req, res) => {
             });
         }
 
-        const duplicate = await Job.exists(duplicateJobQuery({
-            company: company._id,
-            title,
-            jobId,
-            experienceLevel: parsedExperience,
-        }));
+        const duplicate = await Job.exists(duplicateJobIdQuery(jobId));
         if (duplicate) {
             return res.status(409).json({
-                message: DUPLICATE_JOB_MESSAGE,
+                message: DUPLICATE_JOB_ID_MESSAGE,
                 success: false
             });
         }
@@ -131,10 +137,11 @@ export const postJob = async (req, res) => {
         const job = await Job.create({
             title: title.trim(),
             jobId: jobId.trim(),
+            locations: canonicalLocations,
             description: description.trim(),
             requirements: requirementsArray.map((requirement) => String(requirement).trim()).filter(Boolean),
             salary: parsedSalary,
-            location: canonicalLocation,
+            location: canonicalLocations[0],
             country: "India",
             jobType: normalizedJobType,
             experienceLevel: parsedExperience,
@@ -154,7 +161,7 @@ export const postJob = async (req, res) => {
 
         if (isDuplicateKeyError(error)) {
             return res.status(409).json({
-                message: DUPLICATE_JOB_MESSAGE,
+                message: DUPLICATE_JOB_ID_MESSAGE,
                 success: false
             });
         }
@@ -232,7 +239,8 @@ export const getAllJobs = async (req, res) => {
             .filter(isEligibleIndianJob)
             .map((job) => {
                 const result = job.toObject();
-                result.location = canonicalizeIndiaLocation(job.location);
+                result.locations = canonicalizeJobLocations(job.locations, job.location);
+                result.location = result.locations?.[0] || canonicalizeIndiaLocation(job.location);
                 result.country = "India";
                 if (result.company && isIndianLocation(result.company.location, result.company.country, { allowRemote: false })) {
                     result.company.location = canonicalizeIndiaLocation(result.company.location);
@@ -240,7 +248,7 @@ export const getAllJobs = async (req, res) => {
                 }
                 return result;
             })
-            .filter((job) => !location || job.location === location);
+            .filter((job) => !location || job.locations?.includes(location));
 
         return res.status(200).json({
             jobs: indianJobs,
@@ -286,7 +294,8 @@ export const getJobById = async (req, res) => {
             });
         }
         const publicJob = job.toObject();
-        publicJob.location = canonicalizeIndiaLocation(job.location);
+        publicJob.locations = canonicalizeJobLocations(job.locations, job.location);
+        publicJob.location = publicJob.locations?.[0] || canonicalizeIndiaLocation(job.location);
         publicJob.country = "India";
         if (publicJob.company && isIndianLocation(publicJob.company.location, publicJob.company.country, { allowRemote: false })) {
             publicJob.company.location = canonicalizeIndiaLocation(publicJob.company.location);
@@ -369,6 +378,7 @@ export const updateJob = async (req, res) => {
             requirements,
             salary,
             location,
+            locations,
             jobType,
             experience,
             position,
@@ -376,7 +386,7 @@ export const updateJob = async (req, res) => {
             country
         } = req.body;
 
-        const job = await Job.findById(jobId);
+        const job = await Job.findById(jobId).select("+jobIdLegacyNormalized");
         if (!job) {
             return res.status(404).json({
                 message: "Job not found.",
@@ -411,6 +421,7 @@ export const updateJob = async (req, res) => {
                 });
             }
             job.jobId = submittedJobId.trim();
+            job.jobIdLegacyNormalized = undefined;
         }
         if (description !== undefined) {
             if (typeof description !== "string" || !description.trim()) {
@@ -418,19 +429,20 @@ export const updateJob = async (req, res) => {
             }
             job.description = description.trim();
         }
-        if (location !== undefined) {
-            const canonicalLocation = canonicalizeIndiaLocation(location);
-            if (!canonicalLocation) {
+        if (location !== undefined || locations !== undefined) {
+            const canonicalLocations = canonicalizeJobLocations(locations, location);
+            if (!canonicalLocations) {
                 return res.status(400).json({
-                    message: "Choose a valid city in India or Remote for the job location.",
+                    message: "Choose one or more valid Indian locations. Remote must be selected by itself.",
                     success: false
                 });
             }
-            job.location = canonicalLocation;
+            job.locations = canonicalLocations;
+            job.location = canonicalLocations[0];
             job.country = "India";
-        }
-        if (location === undefined && isIndianLocation(job.location, job.country)) {
-            job.location = canonicalizeIndiaLocation(job.location);
+        } else if (isIndianLocation(job.location, job.country)) {
+            job.locations = canonicalizeJobLocations(job.locations, job.location) || [canonicalizeIndiaLocation(job.location)];
+            job.location = job.locations[0];
             job.country = "India";
         }
         if (jobType !== undefined) {
@@ -494,16 +506,10 @@ export const updateJob = async (req, res) => {
             job.requirements = cleaned;
         }
 
-        const duplicate = await Job.exists(duplicateJobQuery({
-            company: job.company,
-            title: job.title,
-            jobId: job.jobId,
-            experienceLevel: job.experienceLevel,
-            excludeId: job._id,
-        }));
+        const duplicate = await Job.exists(duplicateJobIdQuery(job.jobId, job._id));
         if (duplicate) {
             return res.status(409).json({
-                message: DUPLICATE_JOB_MESSAGE,
+                message: DUPLICATE_JOB_ID_MESSAGE,
                 success: false
             });
         }
@@ -522,7 +528,7 @@ export const updateJob = async (req, res) => {
         console.error("Job update failed:", error);
         if (isDuplicateKeyError(error)) {
             return res.status(409).json({
-                message: DUPLICATE_JOB_MESSAGE,
+                message: DUPLICATE_JOB_ID_MESSAGE,
                 success: false
             });
         }

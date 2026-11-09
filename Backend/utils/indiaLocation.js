@@ -61,7 +61,10 @@ export const isIndianLocation = (location, country, { allowRemote = true } = {})
 };
 
 export const isEligibleIndianJob = (job) => {
-  if (!isIndianLocation(job.location, job.country)) return false;
+  const locations = Array.isArray(job.locations) && job.locations.length
+    ? job.locations
+    : [job.location];
+  if (!locations.every((location) => isIndianLocation(location, job.country))) return false;
   const company = job.company;
   return Boolean(
     company &&

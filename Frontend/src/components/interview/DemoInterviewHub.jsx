@@ -636,7 +636,7 @@ const DemoInterviewHub = () => {
                             </div>
 
                             <p className="text-xs text-gray-500 font-medium mb-2">
-                              {job.company?.name || "Hiring Partner"} • {job.location || "Remote"}
+                              {job.company?.name || "Hiring Partner"} • {job.locations?.join(", ") || job.location || "Remote"}
                             </p>
 
                             <div className="flex flex-wrap gap-1">
@@ -1014,4 +1014,3 @@ const DemoInterviewHub = () => {
 };
 
 export default DemoInterviewHub;
-

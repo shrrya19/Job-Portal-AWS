@@ -27,6 +27,11 @@ const jobSchema = new mongoose.Schema(
       select: false,
     },
 
+    jobIdLegacyNormalized: {
+      type: String,
+      select: false,
+    },
+
     status: {
       type: String,
       enum: ["Active", "Inactive"],
@@ -59,6 +64,11 @@ const jobSchema = new mongoose.Schema(
     location: {
       type: String,
       required: true,
+    },
+
+    locations: {
+      type: [String],
+      default: [],
     },
 
     country: String,
@@ -102,20 +112,15 @@ const jobSchema = new mongoose.Schema(
 jobSchema.pre("validate", function normalizeJobIdentity() {
   this.titleNormalized = normalizeIdentityValue(this.title);
   this.jobIdNormalized = normalizeIdentityValue(this.jobId) || undefined;
+  this.jobIdLegacyNormalized = undefined;
 });
 
 jobSchema.index(
-  {
-    company: 1,
-    titleNormalized: 1,
-    jobIdNormalized: 1,
-    experienceLevel: 1,
-  },
+  { jobIdNormalized: 1 },
   {
     unique: true,
-    name: "unique_company_job_identity",
+    name: "unique_job_id_normalized",
     partialFilterExpression: {
-      titleNormalized: { $type: "string" },
       jobIdNormalized: { $type: "string" },
     },
   }

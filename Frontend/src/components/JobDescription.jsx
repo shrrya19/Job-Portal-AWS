@@ -268,7 +268,7 @@ const JobDescription = () => {
                     <span className="font-semibold">
                       Location :
                     </span>{" "}
-                    {singleJob?.location}
+                    {singleJob?.locations?.join(", ") || singleJob?.location}
                   </p>
 
                   <p>

@@ -102,7 +102,7 @@ export const getPublicCompanies = async (req, res) => {
         .lean(),
       Job.find({ location: { $exists: true, $ne: "" } })
         .where({ status: { $in: ["Active", null] } })
-        .select("location country company")
+        .select("location locations country company")
         .populate("company", "location country")
         .lean()
     ]);
@@ -122,7 +122,10 @@ export const getPublicCompanies = async (req, res) => {
         .map((company) => canonicalizeIndiaLocation(company.location)),
       ...jobRecords
         .filter(isEligibleIndianJob)
-        .map((job) => canonicalizeIndiaLocation(job.location))
+        .flatMap((job) => Array.isArray(job.locations) && job.locations.length
+          ? job.locations.map((location) => canonicalizeIndiaLocation(location))
+          : [canonicalizeIndiaLocation(job.location)])
+        .filter(Boolean)
     ])].sort((first, second) => first.localeCompare(second, "en-IN"));
 
     return res.status(200).json({

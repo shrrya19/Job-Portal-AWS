@@ -16,7 +16,7 @@ import axios from "axios";
 import { JOB_API_ENDPOINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, BriefcaseBusiness, Sparkles } from "lucide-react";
+import { Loader2, BriefcaseBusiness, Sparkles, X } from "lucide-react";
 import { motion } from "framer-motion";
 import useGetAllCompanies from "@/hooks/useGetAllCompanies";
 import IndiaLocationDatalist from "../shared/IndiaLocationDatalist";
@@ -27,7 +27,7 @@ const initialInput = {
   description: "",
   requirements: "",
   salary: "",
-  location: "",
+  locations: [],
   country: "India",
   jobType: "Full-Time",
   experience: "",
@@ -42,6 +42,7 @@ const PostJob = () => {
   const [loading, setLoading] = useState(false);
   const [loadingJob, setLoadingJob] = useState(Boolean(id));
   const [submitError, setSubmitError] = useState("");
+  const [locationSearch, setLocationSearch] = useState("");
   const navigate = useNavigate();
   const { companies = [] } = useSelector((store) => store.company);
 
@@ -66,7 +67,9 @@ const PostJob = () => {
             ? job.requirements.join(", ")
             : "",
           salary: String(job.salary ?? ""),
-          location: job.location || "",
+          locations: Array.isArray(job.locations) && job.locations.length
+            ? job.locations
+            : job.location ? [job.location] : [],
           country: "India",
           jobType: job.jobType === "Full Time" ? "Full-Time" : job.jobType || "Full-Time",
           experience: String(job.experienceLevel ?? ""),
@@ -92,9 +95,47 @@ const PostJob = () => {
     }));
   };
 
+  const addLocation = (event) => {
+    event.preventDefault();
+    const newLocation = locationSearch.trim();
+    if (!newLocation) return;
+
+    const alreadySelected = input.locations.some(
+      (location) => location.toLowerCase() === newLocation.toLowerCase()
+    );
+    if (alreadySelected) {
+      setSubmitError("That location is already selected.");
+      return;
+    }
+    if (newLocation.toLowerCase() === "remote" && input.locations.length) {
+      setSubmitError("Remote must be selected by itself.");
+      return;
+    }
+    if (input.locations.some((location) => location.toLowerCase() === "remote")) {
+      setSubmitError("Remove Remote before adding another location.");
+      return;
+    }
+
+    setInput((current) => ({ ...current, locations: [...current.locations, newLocation] }));
+    setLocationSearch("");
+    setSubmitError("");
+  };
+
+  const removeLocation = (locationToRemove) => {
+    setInput((current) => ({
+      ...current,
+      locations: current.locations.filter((location) => location !== locationToRemove),
+    }));
+    setSubmitError("");
+  };
+
   const submitHandler = async (event) => {
     event.preventDefault();
     setSubmitError("");
+    if (!input.locations.length) {
+      setSubmitError("Select at least one job location.");
+      return;
+    }
     setLoading(true);
     try {
       const endpoint = id
@@ -104,9 +145,13 @@ const PostJob = () => {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
       };
+      const payload = {
+        ...input,
+        location: input.locations[0],
+      };
       const res = id
-        ? await axios.put(endpoint, input, requestConfig)
-        : await axios.post(endpoint, input, requestConfig);
+        ? await axios.put(endpoint, payload, requestConfig)
+        : await axios.post(endpoint, payload, requestConfig);
 
       if (res.data.success) {
         toast.success(res.data.message);
@@ -171,9 +216,39 @@ const PostJob = () => {
                   <Input id="jobId" name="jobId" required value={input.jobId} onChange={changeEventHandler} placeholder="ABC-JOB-101" pattern="[A-Za-z0-9](?:[A-Za-z0-9_]|-){2,49}" maxLength={50} title="Use 3-50 letters, numbers, hyphens, or underscores." className="mt-2 h-12 rounded-xl" />
                 </div>
                 <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input id="location" name="location" list="post-job-india-locations" required value={input.location} onChange={changeEventHandler} placeholder="Search an Indian city, state, or Remote" className="mt-2 h-12 rounded-xl" />
+                  <Label htmlFor="location-search">Job Locations</Label>
+                  <div className="mt-2 flex gap-2">
+                    <Input
+                      id="location-search"
+                      list="post-job-india-locations"
+                      value={locationSearch}
+                      onChange={(event) => setLocationSearch(event.target.value)}
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") addLocation(event);
+                      }}
+                      placeholder="Choose an Indian city or Remote"
+                      className="h-12 rounded-xl"
+                    />
+                    <Button type="button" variant="outline" onClick={addLocation} className="h-12 rounded-xl">
+                      Add
+                    </Button>
+                  </div>
                   <IndiaLocationDatalist id="post-job-india-locations" />
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {input.locations.map((location) => (
+                      <span key={location} className="inline-flex items-center gap-1.5 rounded-full bg-purple-100 px-3 py-1.5 text-sm font-medium text-purple-800">
+                        {location}
+                        <button
+                          type="button"
+                          aria-label={`Remove ${location}`}
+                          onClick={() => removeLocation(location)}
+                          className="rounded-full hover:text-red-700"
+                        >
+                          <X size={14} />
+                        </button>
+                      </span>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>

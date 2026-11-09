@@ -130,7 +130,7 @@ const RecruiterDashboard = () => {
                           <div className="min-w-0">
                             <p className="truncate font-medium text-slate-900">{job.title}</p>
                             <p className="mt-1 text-sm text-slate-500">
-                              {job.company?.name || "Company"} · {job.location}
+                              {job.company?.name || "Company"} · {job.locations?.join(", ") || job.location}
                             </p>
                           </div>
                           <Link

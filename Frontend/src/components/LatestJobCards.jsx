@@ -47,7 +47,7 @@ const LatestJobCards = ({ job }) => {
           <p className="truncate text-sm font-semibold text-slate-800">{job?.company?.name || "Company"}</p>
           <p className="mt-1 flex items-center gap-1.5 truncate text-xs text-slate-500">
             <MapPin size={13} className="shrink-0" />
-            {job?.location || "Location not specified"}
+            {job?.locations?.join(", ") || job?.location || "Location not specified"}
           </p>
         </div>
         <button
