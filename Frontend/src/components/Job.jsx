@@ -35,7 +35,7 @@ const Job = ({ job }) => {
         <motion.div
             whileHover={{ y: -10, scale: 1.02 }}
             transition={{ duration: 0.3 }}
-            className="relative overflow-hidden rounded-2xl bg-white border border-purple-100 shadow-md hover:shadow-2xl hover:border-purple-300 transition-all duration-300 p-5 group"
+            className="relative h-full min-h-[430px] overflow-hidden rounded-2xl bg-white border border-purple-100 shadow-md hover:shadow-2xl hover:border-purple-300 transition-all duration-300 p-5 group flex flex-col"
         >
             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition duration-500 bg-gradient-to-r from-purple-500/5 via-transparent to-orange-500/5"></div>
             <div className="flex items-center justify-between relative z-10">
@@ -58,7 +58,7 @@ const Job = ({ job }) => {
                     </div>
                 </div>
             </div>
-            <div className="relative z-10">
+            <div className="relative z-10 flex-1">
                 <h1 className="font-bold text-xl text-gray-900 mb-2">{job?.title}</h1>
                 <p className="text-sm text-gray-600 line-clamp-2">{job?.description}</p>
             </div>
@@ -77,7 +77,7 @@ const Job = ({ job }) => {
                     Hiring Now
                 </div>
             </div>
-            <div className="flex gap-3 mt-5 relative z-10">
+            <div className="mt-auto flex gap-3 pt-5 relative z-10">
                 <Button onClick={() => navigate(`/description/${job?._id}`)} variant="outline" className="flex-1 rounded-xl border-purple-200 hover:bg-purple-50 hover:border-purple-400">
                     View Details
                 </Button>

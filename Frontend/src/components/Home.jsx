@@ -77,7 +77,7 @@ const Home = () => {
           <div className="mx-auto max-w-7xl px-5 sm:px-8">
             <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
               <div>
-                <p className="text-sm font-semibold uppercase tracking-[0.15em] text-violet-700">Hiring on Hire Nest</p>
+                <p className="text-sm font-semibold uppercase tracking-[0.15em] text-violet-700">Hiring on Career Nest</p>
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#172554] sm:text-4xl">Top hiring companies</h2>
                 <p className="mt-2 text-sm text-slate-500">Meet employers with live opportunities in our job listings.</p>
               </div>
@@ -195,7 +195,7 @@ const Home = () => {
             <div className="max-w-2xl">
               <div className="flex items-center gap-2 text-sm font-medium text-violet-200"><GraduationCap size={18} /> Your next chapter starts here</div>
               <h2 className="mt-3 text-3xl font-semibold tracking-tight sm:text-4xl">Your Career Journey Starts Here!</h2>
-              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200">Join Hire Nest today and discover opportunities that match your skills and ambitions.</p>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200">Join Career Nest today and discover opportunities that match your skills and ambitions.</p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
               <Link to="/signup" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-violet-600 px-5 text-sm font-semibold text-white transition hover:bg-violet-500">

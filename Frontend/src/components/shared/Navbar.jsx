@@ -70,11 +70,11 @@ function Navbar() {
             </div> */}
 
             <div className="h-12 w-12 shrink-0">
-              <img src={Logo} alt="Hire Nest" className="h-full w-full object-contain" />
+              <img src={Logo} alt="Career Nest" className="h-full w-full object-contain" />
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight text-[#172554] sm:text-3xl">
-              Hire <span className="text-violet-700">Nest</span>
+              Career <span className="text-violet-700">Nest</span>
             </h1>
           </Link>
 

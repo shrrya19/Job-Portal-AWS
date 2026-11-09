@@ -81,6 +81,7 @@ const Jobs = ({ internshipsOnly = false }) => {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: index * 0.05 }}
                         whileHover={{ y: -8 }}
+                        className="h-full"
                       >
                         <Job job={job} />
                       </motion.div>
