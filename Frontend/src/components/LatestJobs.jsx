@@ -1,10 +1,13 @@
 import { ArrowRight, Sparkles } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { useSearchParams } from "react-router-dom";
 import LatestJobCards from "./LatestJobCards";
 
 const LatestJobs = () => {
   const { allJobs = [] } = useSelector((store) => store.job);
+  const [searchParams] = useSearchParams();
+  const selectedLocation = searchParams.get("location");
   const latestJobs = [...allJobs]
     .sort((first, second) => new Date(second.createdAt) - new Date(first.createdAt))
     .slice(0, 6);
@@ -18,7 +21,11 @@ const LatestJobs = () => {
               <Sparkles size={15} /> New opportunities
             </p>
             <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#172554] sm:text-4xl">Latest jobs for you</h2>
-            <p className="mt-2 text-sm text-slate-500">Fresh roles and internships shared by hiring teams.</p>
+            <p className="mt-2 text-sm text-slate-500">
+              {selectedLocation
+                ? `Fresh roles and internships in ${selectedLocation}.`
+                : "Fresh roles and internships shared by hiring teams."}
+            </p>
           </div>
           <Link
             to="/jobs"
@@ -34,8 +41,12 @@ const LatestJobs = () => {
           </div>
         ) : (
           <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-white px-6 py-14 text-center">
-            <h3 className="text-lg font-semibold text-slate-900">No jobs posted yet</h3>
-            <p className="mt-2 text-sm text-slate-500">Check back soon for new opportunities.</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              {selectedLocation ? `No jobs available in ${selectedLocation}` : "No jobs posted yet"}
+            </h3>
+            <p className="mt-2 text-sm text-slate-500">
+              {selectedLocation ? "Try another Indian city or choose All India." : "Check back soon for new opportunities."}
+            </p>
           </div>
         )}
       </div>

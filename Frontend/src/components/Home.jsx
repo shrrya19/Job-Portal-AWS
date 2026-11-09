@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   ArrowRight,
   BarChart3,
@@ -11,9 +11,13 @@ import {
   House,
   UserRoundCheck,
 } from "lucide-react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { setSearchedQuery } from "@/redux/jobSlice";
+import axios from "axios";
+import { toast } from "sonner";
+import { COMPANY_API_ENDPOINT } from "@/utils/constant";
+import { Input } from "./ui/input";
 import Navbar from "./shared/Navbar";
 import HeroSection from "./HeroSection";
 import CategoryCarausel from "./CategoryCarausel";
@@ -48,21 +52,74 @@ const Home = () => {
   useGetAllJobs();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedLocation = searchParams.get("location") || "All India";
   const { user } = useSelector((store) => store.auth);
   const { allJobs = [] } = useSelector((store) => store.job);
-  const hiringCompanies = [...new Map(
-    allJobs
-      .filter((job) => job.company?._id)
-      .map((job) => [job.company._id, job.company])
-  ).values()].slice(0, 8);
+  const [companies, setCompanies] = useState([]);
+  const [availableLocations, setAvailableLocations] = useState([]);
+  const [companyError, setCompanyError] = useState("");
+  const activeJobCounts = useMemo(() => allJobs.reduce((counts, job) => {
+    const companyId = job.company?._id;
+    if (companyId) counts[companyId] = (counts[companyId] || 0) + 1;
+    return counts;
+  }, {}), [allJobs]);
+  const hiringCompanies = companies
+    .filter((company) => activeJobCounts[company._id])
+    .slice(0, 8);
 
   useEffect(() => {
-    if (user?.role === "recruiter") navigate("/admin/companies");
+    if (user?.role === "recruiter") navigate("/admin/dashboard");
   }, [navigate, user]);
+
+  useEffect(() => {
+    const controller = new AbortController();
+    const fetchIndianCompanies = async () => {
+      try {
+        setCompanyError("");
+        const params = selectedLocation !== "All India" ? { location: selectedLocation } : {};
+        const response = await axios.get(`${COMPANY_API_ENDPOINT}/public`, {
+          params,
+          signal: controller.signal,
+        });
+        if (!response.data.success) throw new Error("Unable to load India-based companies.");
+        setCompanies(response.data.companies || []);
+        setAvailableLocations(response.data.locations || []);
+      } catch (error) {
+        if (!controller.signal.aborted) {
+          console.error("Indian company lookup failed:", error);
+          setCompanies([]);
+          setCompanyError(error?.response?.data?.message || "Unable to load companies.");
+          toast.error(error?.response?.data?.message || "Unable to load companies.");
+        }
+      }
+    };
+
+    fetchIndianCompanies();
+    return () => controller.abort();
+  }, [selectedLocation]);
+
+  const applyLocationFilter = (event) => {
+    event.preventDefault();
+    const location = event.currentTarget.elements.location.value.trim();
+    if (location.toLowerCase() !== "all india" && !availableLocations.includes(location)) {
+      toast.error("Choose an available Indian location from the dropdown.");
+      return;
+    }
+
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      if (location.toLowerCase() === "all india") next.delete("location");
+      else next.set("location", location);
+      return next;
+    });
+  };
 
   const searchCompany = (companyName) => {
     dispatch(setSearchedQuery(companyName));
-    navigate("/browse");
+    const params = new URLSearchParams();
+    if (selectedLocation !== "All India") params.set("location", selectedLocation);
+    navigate(`/browse${params.size ? `?${params.toString()}` : ""}`);
   };
 
   return (
@@ -81,10 +138,31 @@ const Home = () => {
                 <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#172554] sm:text-4xl">Top hiring companies</h2>
                 <p className="mt-2 text-sm text-slate-500">Meet employers with live opportunities in our job listings.</p>
               </div>
-              <Link to="/jobs" className="inline-flex items-center gap-2 self-start text-sm font-semibold text-violet-800 hover:text-violet-950 sm:self-auto">
+              <Link to={selectedLocation === "All India" ? "/jobs" : `/jobs?location=${encodeURIComponent(selectedLocation)}`} className="inline-flex items-center gap-2 self-start text-sm font-semibold text-violet-800 hover:text-violet-950 sm:self-auto">
                 Browse open roles <ArrowRight size={17} />
               </Link>
             </div>
+
+            <form key={selectedLocation} onSubmit={applyLocationFilter} className="mt-6 flex flex-col gap-3 sm:flex-row sm:items-end">
+              <div className="w-full sm:max-w-sm">
+                <label htmlFor="home-company-location" className="text-sm font-medium text-slate-700">Company and job location</label>
+                <Input
+                  id="home-company-location"
+                  name="location"
+                  list="home-india-locations"
+                  defaultValue={selectedLocation}
+                  className="mt-2 h-11"
+                  placeholder="All India"
+                />
+                <datalist id="home-india-locations">
+                  <option value="All India" />
+                  {availableLocations.map((location) => <option key={location} value={location} />)}
+                </datalist>
+              </div>
+              <button type="submit" className="h-11 rounded-xl bg-violet-700 px-5 text-sm font-semibold text-white transition hover:bg-violet-800">
+                Apply location
+              </button>
+            </form>
 
             {hiringCompanies.length ? (
               <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -105,14 +183,16 @@ const Home = () => {
                     )}
                     <span className="mt-3 line-clamp-1 text-sm font-semibold text-slate-900">{company.name}</span>
                     <span className="mt-1 text-xs text-slate-500">
-                      {allJobs.filter((job) => job.company?._id === company._id).length} open roles
+                      {activeJobCounts[company._id]} open roles · {company.location}
                     </span>
                   </button>
                 ))}
               </div>
             ) : (
               <div className="mt-8 rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center text-sm text-slate-500">
-                Company profiles will appear here as employers publish opportunities.
+                {companyError || (selectedLocation !== "All India"
+                  ? `No India-based companies with open jobs are available in ${selectedLocation}.`
+                  : "Company profiles will appear here as employers publish opportunities.")}
               </div>
             )}
           </div>

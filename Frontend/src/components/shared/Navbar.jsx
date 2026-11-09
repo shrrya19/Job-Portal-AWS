@@ -12,6 +12,7 @@ import {
   Sparkles,
   Video,
   X,
+  LayoutDashboard,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -94,6 +95,18 @@ function Navbar() {
                 </>
               ) : user && user.role === "recruiter" ? (
                 <>
+                  <li>
+                    <Link
+                      to="/admin/dashboard"
+                      className={`inline-flex items-center gap-1.5 transition-all duration-200 hover:text-[#6A38C2] ${isActive("/admin/dashboard")
+                          ? "text-[#6A38C2] font-semibold"
+                          : ""
+                        }`}
+                    >
+                      <LayoutDashboard size={16} />
+                      Dashboard
+                    </Link>
+                  </li>
                   <li>
                     <Link
                       to="/admin/companies"
@@ -301,6 +314,9 @@ function Navbar() {
             </>
           ) : user?.role === "recruiter" ? (
                 <>
+                  <Link onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/dashboard">
+                    <LayoutDashboard size={16} /> Dashboard
+                  </Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/companies">Companies</Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/jobs">Jobs</Link>
                 </>

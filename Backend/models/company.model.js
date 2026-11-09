@@ -10,6 +10,7 @@ const companySchema = new mongoose.Schema({
     description: String,
     website: String,
     location: String,
+    country: String,
     logo: String,
     userId: {
         type: mongoose.Schema.Types.ObjectId,

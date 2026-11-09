@@ -31,9 +31,14 @@ export const applyJob = async (req, res) => {
                 success: false
             })
         }
+        if (job.status === "Inactive") {
+            return res.status(400).json({
+                message: "This job is no longer accepting applications.",
+                success: false
+            });
+        }
 
-        // For creating a new application
-        const newApplication = await Application.create({
+        const newApplication = new Application({
             job: jobId,
             applicant: userId,
             status: "applied",
@@ -46,8 +51,34 @@ export const applyJob = async (req, res) => {
             ]
         });
 
-        job.applications.push(newApplication._id);
-        await job.save();
+        const jobUpdate = await Job.updateOne(
+            { _id: jobId, status: { $in: ["Active", null] } },
+            { $addToSet: { applications: newApplication._id } }
+        );
+        if (jobUpdate.matchedCount === 0) {
+            const stillExists = await Job.exists({ _id: jobId });
+            return res.status(stillExists ? 400 : 404).json({
+                message: stillExists
+                    ? "This job is no longer accepting applications."
+                    : "Job not found.",
+                success: false
+            });
+        }
+
+        try {
+            await newApplication.save();
+        } catch (error) {
+            try {
+                await Job.updateOne(
+                    { _id: jobId },
+                    { $pull: { applications: newApplication._id } }
+                );
+            } catch (cleanupError) {
+                console.error("Failed to remove an incomplete job application reference:", cleanupError);
+            }
+            throw error;
+        }
+
         return res.status(201).json({
             message: "Job applied successfully.",
             success: true

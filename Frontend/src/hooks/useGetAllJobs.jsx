@@ -5,12 +5,13 @@ import { useEffect } from 'react'
 import { useDispatch, useSelector } from 'react-redux'
 import { useSearchParams } from 'react-router-dom'
 
-const useGetAllJobs = () => {
+const useGetAllJobs = ({ includeSearchedQuery = true } = {}) => {
     const dispatch = useDispatch()
     const { searchedQuery } = useSelector(store => store.job)
     const [searchParams] = useSearchParams()
     const location = searchParams.get("location") || ""
     const experience = searchParams.get("experience") || ""
+    const keyword = includeSearchedQuery ? searchedQuery : ""
 
     useEffect(() => {
         const controller = new AbortController()
@@ -18,7 +19,7 @@ const useGetAllJobs = () => {
         const fetchAllJobs = async () => {
             try {
                 const res = await axios.get(`${JOB_API_ENDPOINT}/get`, {
-                    params: { keyword: searchedQuery, location, experience },
+                    params: { keyword, location, experience },
                     signal: controller.signal,
                 })
                 if (res.data.success) {
@@ -33,7 +34,7 @@ const useGetAllJobs = () => {
 
         fetchAllJobs()
         return () => controller.abort()
-    }, [dispatch, searchedQuery, location, experience])
+    }, [dispatch, keyword, location, experience])
 }
 
 export default useGetAllJobs

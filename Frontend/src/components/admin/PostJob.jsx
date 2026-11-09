@@ -19,13 +19,16 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Loader2, BriefcaseBusiness, Sparkles } from "lucide-react";
 import { motion } from "framer-motion";
 import useGetAllCompanies from "@/hooks/useGetAllCompanies";
+import IndiaLocationDatalist from "../shared/IndiaLocationDatalist";
 
 const initialInput = {
   title: "",
+  jobId: "",
   description: "",
   requirements: "",
   salary: "",
   location: "",
+  country: "India",
   jobType: "Full-Time",
   experience: "",
   position: "1",
@@ -38,6 +41,7 @@ const PostJob = () => {
   const [input, setInput] = useState(initialInput);
   const [loading, setLoading] = useState(false);
   const [loadingJob, setLoadingJob] = useState(Boolean(id));
+  const [submitError, setSubmitError] = useState("");
   const navigate = useNavigate();
   const { companies = [] } = useSelector((store) => store.company);
 
@@ -46,7 +50,7 @@ const PostJob = () => {
 
     const fetchJob = async () => {
       try {
-        const res = await axios.get(`${JOB_API_ENDPOINT}/get/${id}`, {
+        const res = await axios.get(`${JOB_API_ENDPOINT}/getadmin/${id}`, {
           withCredentials: true,
         });
         const job = res.data.job;
@@ -56,12 +60,14 @@ const PostJob = () => {
 
         setInput({
           title: job.title || "",
+          jobId: job.jobId || "",
           description: job.description || "",
           requirements: Array.isArray(job.requirements)
             ? job.requirements.join(", ")
             : "",
           salary: String(job.salary ?? ""),
           location: job.location || "",
+          country: "India",
           jobType: job.jobType === "Full Time" ? "Full-Time" : job.jobType || "Full-Time",
           experience: String(job.experienceLevel ?? ""),
           position: String(job.position ?? 1),
@@ -79,6 +85,7 @@ const PostJob = () => {
   }, [id, navigate]);
 
   const changeEventHandler = (event) => {
+    setSubmitError("");
     setInput((current) => ({
       ...current,
       [event.target.name]: event.target.value,
@@ -87,6 +94,7 @@ const PostJob = () => {
 
   const submitHandler = async (event) => {
     event.preventDefault();
+    setSubmitError("");
     setLoading(true);
     try {
       const endpoint = id
@@ -105,7 +113,9 @@ const PostJob = () => {
         navigate("/admin/jobs");
       }
     } catch (error) {
-      toast.error(error?.response?.data?.message || "Unable to save this job.");
+      const message = error?.response?.data?.message || "Unable to save this job.";
+      setSubmitError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -157,8 +167,13 @@ const PostJob = () => {
                   <Input id="title" name="title" required value={input.title} onChange={changeEventHandler} placeholder="Frontend Developer" className="mt-2 h-12 rounded-xl" />
                 </div>
                 <div>
+                  <Label htmlFor="jobId">Job ID</Label>
+                  <Input id="jobId" name="jobId" required value={input.jobId} onChange={changeEventHandler} placeholder="ABC-JOB-101" pattern="[A-Za-z0-9](?:[A-Za-z0-9_]|-){2,49}" maxLength={50} title="Use 3-50 letters, numbers, hyphens, or underscores." className="mt-2 h-12 rounded-xl" />
+                </div>
+                <div>
                   <Label htmlFor="location">Location</Label>
-                  <Input id="location" name="location" required value={input.location} onChange={changeEventHandler} placeholder="Bengaluru or Remote" className="mt-2 h-12 rounded-xl" />
+                  <Input id="location" name="location" list="post-job-india-locations" required value={input.location} onChange={changeEventHandler} placeholder="Search an Indian city, state, or Remote" className="mt-2 h-12 rounded-xl" />
+                  <IndiaLocationDatalist id="post-job-india-locations" />
                 </div>
                 <div>
                   <Label htmlFor="description">Description</Label>
@@ -174,7 +189,10 @@ const PostJob = () => {
                 </div>
                 <div>
                   <Label>Job Type</Label>
-                  <Select value={input.jobType} onValueChange={(jobType) => setInput((current) => ({ ...current, jobType }))}>
+                  <Select value={input.jobType} onValueChange={(jobType) => {
+                    setSubmitError("");
+                    setInput((current) => ({ ...current, jobType }));
+                  }}>
                     <SelectTrigger className="mt-2 h-12 w-full rounded-xl">
                       <SelectValue placeholder="Choose a job type" />
                     </SelectTrigger>
@@ -197,10 +215,19 @@ const PostJob = () => {
                 </div>
               </div>
 
+              {submitError && (
+                <div role="alert" className="mt-6 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                  {submitError}
+                </div>
+              )}
+
               <div className="mt-6">
                 <Label className="mb-2 block">Select Company</Label>
                 {companies.length ? (
-                  <Select value={input.companyId} onValueChange={(companyId) => setInput((current) => ({ ...current, companyId }))}>
+                  <Select value={input.companyId} onValueChange={(companyId) => {
+                    setSubmitError("");
+                    setInput((current) => ({ ...current, companyId }));
+                  }}>
                     <SelectTrigger className="h-12 w-full rounded-xl">
                       <SelectValue placeholder="Choose company" />
                     </SelectTrigger>

@@ -60,7 +60,7 @@ const Login = () => {
         dispatch(setUser(res.data.user));
 
         if (res.data.user.role === "recruiter") {
-          navigate("/admin/companies");
+          navigate("/admin/dashboard");
         } else {
           navigate("/");
         }

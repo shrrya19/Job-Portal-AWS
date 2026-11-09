@@ -252,6 +252,13 @@ const JobDescription = () => {
 
                   <p>
                     <span className="font-semibold">
+                      Job ID :
+                    </span>{" "}
+                    {singleJob?.jobId || "Not available"}
+                  </p>
+
+                  <p>
+                    <span className="font-semibold">
                       Role :
                     </span>{" "}
                     {singleJob?.title}
@@ -268,7 +275,7 @@ const JobDescription = () => {
                     <span className="font-semibold">
                       Experience :
                     </span>{" "}
-                    {singleJob?.experience || 0} Years
+                    {singleJob?.experienceLevel ?? 0} Years
                   </p>
 
                   <p>

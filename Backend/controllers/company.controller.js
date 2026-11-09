@@ -1,7 +1,13 @@
 import { Company } from "../models/company.model.js";
+import { Job } from "../models/job.model.js";
 import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { storeImageSecurely } from "../utils/fileStorage.js";
+import {
+  canonicalizeIndiaLocation,
+  isEligibleIndianJob,
+  isIndianLocation,
+} from "../utils/indiaLocation.js";
 
 // ✅ Register Company
 export const registerCompany = async (req, res) => {
@@ -76,6 +82,63 @@ export const getCompany = async (req, res) => {
   }
 };
 
+export const getPublicCompanies = async (req, res) => {
+  try {
+    const requestedLocation = String(req.query.location || "").trim();
+    const selectedLocation = requestedLocation && requestedLocation.toLowerCase() !== "all india"
+      ? canonicalizeIndiaLocation(requestedLocation)
+      : "";
+
+    if (requestedLocation && requestedLocation.toLowerCase() !== "all india" && !selectedLocation) {
+      return res.status(400).json({
+        message: "Choose a valid city or state in India.",
+        success: false
+      });
+    }
+
+    const [companyRecords, jobRecords] = await Promise.all([
+      Company.find({ location: { $exists: true, $ne: "" } })
+        .select("name description website location country logo")
+        .lean(),
+      Job.find({ location: { $exists: true, $ne: "" } })
+        .where({ status: { $in: ["Active", null] } })
+        .select("location country company")
+        .populate("company", "location country")
+        .lean()
+    ]);
+
+    const companies = companyRecords
+      .filter((company) => isIndianLocation(company.location, company.country, { allowRemote: false }))
+      .map((company) => ({
+        ...company,
+        location: canonicalizeIndiaLocation(company.location),
+        country: "India"
+      }))
+      .filter((company) => !selectedLocation || company.location === selectedLocation);
+
+    const locations = [...new Set([
+      ...companyRecords
+        .filter((company) => isIndianLocation(company.location, company.country, { allowRemote: false }))
+        .map((company) => canonicalizeIndiaLocation(company.location)),
+      ...jobRecords
+        .filter(isEligibleIndianJob)
+        .map((job) => canonicalizeIndiaLocation(job.location))
+    ])].sort((first, second) => first.localeCompare(second, "en-IN"));
+
+    return res.status(200).json({
+      companies,
+      locations,
+      success: true
+    });
+  } catch (error) {
+    console.error("GET PUBLIC COMPANIES ERROR:", error);
+    return res.status(500).json({
+      message: "Unable to load India-based companies.",
+      success: false
+    });
+  }
+};
+
 // ✅ Get company by ID
 export const getCompanyById = async (req, res) => {
   try {
@@ -117,7 +180,7 @@ export const getCompanyById = async (req, res) => {
 // ✅ Update Company
 export const updateCompany = async (req, res) => {
   try {
-    const { name, description, website, location } = req.body;
+    const { name, description, website, location, country } = req.body;
     const company = await Company.findById(req.params.id);
 
     if (!company) {
@@ -136,10 +199,30 @@ export const updateCompany = async (req, res) => {
       });
     }
 
+    if (country !== undefined && String(country).trim().toLowerCase() !== "india") {
+      return res.status(400).json({
+        message: "Company locations must be in India.",
+        success: false
+      });
+    }
+
     if (name !== undefined && name.trim()) company.name = name.trim();
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;
-    if (location !== undefined) company.location = location;
+    if (location !== undefined) {
+      const canonicalLocation = canonicalizeIndiaLocation(location);
+      if (!canonicalLocation || canonicalLocation === "Remote") {
+        return res.status(400).json({
+          message: "Choose a valid company city or state in India.",
+          success: false
+        });
+      }
+      company.location = canonicalLocation;
+      company.country = "India";
+    } else if (!company.country && isIndianLocation(company.location, company.country, { allowRemote: false })) {
+      company.location = canonicalizeIndiaLocation(company.location);
+      company.country = "India";
+    }
 
     if (req.file) {
       if (!req.file.mimetype?.startsWith("image/")) {

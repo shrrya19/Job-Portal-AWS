@@ -25,7 +25,7 @@ export const getEligibleJobs = async (req, res) => {
     const savedJobIds = new Set((student?.savedJobs || []).map(j => j?._id?.toString()).filter(Boolean));
 
     // 3. Get all available active jobs
-    const allJobs = await Job.find({})
+    const allJobs = await Job.find({ status: { $in: ["Active", null] } })
       .populate("company")
       .sort({ createdAt: -1 })
       .limit(50);
@@ -619,4 +619,3 @@ export const cancelInterview = async (req, res) => {
     });
   }
 };
-

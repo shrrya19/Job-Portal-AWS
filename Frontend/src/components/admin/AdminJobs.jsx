@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
@@ -14,6 +14,7 @@ const AdminJobs = () => {
   useGetAllAdminJobs();
 
   const [input, setInput] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All Jobs");
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -99,7 +100,25 @@ const AdminJobs = () => {
 
           </div>
 
-          <AdminJobsTable />
+          <div className="mb-5 flex flex-wrap gap-2">
+            {["All Jobs", "Active Jobs", "Inactive Jobs"].map((filter) => (
+              <button
+                key={filter}
+                type="button"
+                aria-pressed={statusFilter === filter}
+                onClick={() => setStatusFilter(filter)}
+                className={`rounded-full border px-4 py-2 text-sm font-medium transition ${
+                  statusFilter === filter
+                    ? "border-[#6A38C2] bg-[#6A38C2] text-white"
+                    : "border-purple-100 bg-white text-gray-600 hover:border-purple-300"
+                }`}
+              >
+                {filter}
+              </button>
+            ))}
+          </div>
+
+          <AdminJobsTable statusFilter={statusFilter} />
 
         </div>
       </div>

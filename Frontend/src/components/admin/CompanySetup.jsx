@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Button } from "../ui/button";
 import { ArrowLeft, Loader2, Building2, Globe, MapPin, Upload } from "lucide-react";
@@ -12,6 +12,7 @@ import { setSingleCompany } from "@/redux/companySlice";
 import axios from "axios";
 import useGetCompanyById from "@/hooks/useGetCompanyById";
 import { motion } from "framer-motion";
+import IndiaLocationDatalist from "../shared/IndiaLocationDatalist";
 
 const CompanySetup = () => {
   const params = useParams();
@@ -69,6 +70,7 @@ const CompanySetup = () => {
     formData.append("description", input.description);
     formData.append("website", input.website);
     formData.append("location", input.location);
+    formData.append("country", "India");
 
     if (input.file) {
       formData.append("file", input.file);
@@ -312,12 +314,16 @@ const CompanySetup = () => {
                       <Input
                         type="text"
                         name="location"
+                        list="company-india-locations"
+                        required
                         value={input.location}
                         onChange={
                           changeEventHandler
                         }
+                        placeholder="Search an Indian city or state"
                         className="pl-10 h-12 rounded-xl"
                       />
+                      <IndiaLocationDatalist id="company-india-locations" excludeRemote />
 
                     </div>
                   </div>

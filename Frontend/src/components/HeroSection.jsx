@@ -10,6 +10,9 @@ import {
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { setSearchedQuery } from "@/redux/jobSlice";
+import { toast } from "sonner";
+import IndiaLocationDatalist from "./shared/IndiaLocationDatalist";
+import indiaLocations from "@/data/indiaLocations.json";
 
 const popularSearches = [
   "Software Developer",
@@ -28,10 +31,24 @@ const HeroSection = () => {
   const navigate = useNavigate();
 
   const searchJobs = (searchTerm = keyword) => {
+    const selectedLocation = location.trim();
+    const locationAliases = ["Bangalore", "Banglore", "Gurgaon", "Bombay", "Calcutta", "Madras", "Trivandrum", "Goa (Panaji)"];
+    if (
+      selectedLocation &&
+      selectedLocation.toLowerCase() !== "all india" &&
+      !indiaLocations.includes(selectedLocation) &&
+      !locationAliases.includes(selectedLocation)
+    ) {
+      toast.error("Choose an Indian location from the dropdown.");
+      return;
+    }
+
     const internshipSearch = searchTerm.trim().toLowerCase() === "internship";
     dispatch(setSearchedQuery(internshipSearch ? "" : searchTerm.trim()));
     const params = new URLSearchParams();
-    if (location.trim()) params.set("location", location.trim());
+    if (selectedLocation && selectedLocation.toLowerCase() !== "all india") {
+      params.set("location", selectedLocation);
+    }
     if (experience) params.set("experience", experience);
     const route = internshipSearch ? "/internships" : "/browse";
     navigate(`${route}${params.size ? `?${params.toString()}` : ""}`);
@@ -84,9 +101,11 @@ const HeroSection = () => {
                   type="search"
                   value={location}
                   onChange={(event) => setLocation(event.target.value)}
+                  list="homepage-india-locations"
                   placeholder="Location"
                   className="w-full min-w-0 border-0 bg-transparent text-sm text-slate-900 outline-none placeholder:text-slate-400 focus:ring-0"
                 />
+                <IndiaLocationDatalist id="homepage-india-locations" includeAllIndia />
               </label>
               <label className="flex min-w-0 items-center gap-3 rounded-xl border-t border-slate-100 px-3 py-2.5 focus-within:bg-slate-50 lg:border-l lg:border-t-0">
                 <BriefcaseBusiness size={18} className="shrink-0 text-violet-700" />
