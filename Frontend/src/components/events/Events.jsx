@@ -1,5 +1,4 @@
-import React from "react";
-
+import { useSelector } from "react-redux";
 import useGetAllEvents from "@/hooks/useGetAllEvents";
 
 import EventHero from "./EventHero";
@@ -11,6 +10,10 @@ import EventList from "./EventList";
 const Events = () => {
     // Fetch all events from backend
     useGetAllEvents();
+    const { searchEventByText, eventFilters } = useSelector((store) => store.event);
+    const hasActiveFilters = Boolean(
+        searchEventByText.trim() || eventFilters.category || eventFilters.mode || eventFilters.price
+    );
 
     return (
         <div className="min-h-screen bg-gray-50">
@@ -21,7 +24,7 @@ const Events = () => {
             <div className="max-w-7xl mx-auto px-4 md:px-6 py-10">
 
                 {/* Featured Events */}
-                <FeaturedEvents />
+                {!hasActiveFilters && <FeaturedEvents />}
 
                 {/* Search */}
                 <EventSearch />
@@ -30,7 +33,7 @@ const Events = () => {
                 <EventFilter />
 
                 {/* All Events */}
-                <div className="mt-10">
+                <div id="all-upcoming-events" className="mt-10 scroll-mt-24">
 
                     <div className="flex items-center justify-between mb-6">
 

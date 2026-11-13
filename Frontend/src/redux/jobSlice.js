@@ -26,6 +26,19 @@ const jobSlice = createSlice({
         setAllAppliedJobs: (state, action) => {
             state.allAppliedJobs = action.payload
         },
+        updateAppliedJobStatus: (state, action) => {
+            const { applicationId, status, stageHistory, stageDetails } = action.payload;
+            state.allAppliedJobs = state.allAppliedJobs.map((application) =>
+                application._id === applicationId
+                    ? {
+                        ...application,
+                        status,
+                        stageHistory: stageHistory || application.stageHistory,
+                        stageDetails: { ...application.stageDetails, ...stageDetails },
+                    }
+                    : application
+            );
+        },
         setSearchedQuery: (state, action) => {
             state.searchedQuery = action.payload
         },
@@ -48,6 +61,7 @@ export const {
     setAllAdminJobs,
     setSearchJobByText,
     setAllAppliedJobs,
+    updateAppliedJobStatus,
     setSearchedQuery,
     updateAdminJob,
     deleteAdminJob

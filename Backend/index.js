@@ -12,6 +12,7 @@ import applicationRoute from "./routes/application.route.js";
 import eventRoute from "./routes/event.route.js";
 import resumeRoute from "./routes/resume.route.js";
 import interviewRoute from "./routes/interview.route.js";
+import recruiterRoute from "./routes/recruiter.route.js";
 const app = express();
 
 const __filename = fileURLToPath(import.meta.url);
@@ -55,6 +56,7 @@ app.use("/api/v1/application", applicationRoute);
 app.use("/api/v1/event", eventRoute);
 app.use("/api/v1/resume", resumeRoute);
 app.use("/api/v1/interview", interviewRoute);
+app.use("/api/v1/recruiter", recruiterRoute);
 
 app.use((error, req, res, next) => {
     console.error("Unhandled request error:", error);

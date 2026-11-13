@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Button } from "../ui/button";
 import { ArrowLeft, Loader2, Building2, Globe, MapPin, Upload } from "lucide-react";
@@ -20,27 +20,30 @@ const CompanySetup = () => {
 
   useGetCompanyById(params.id);
 
-  const [input, setInput] = useState({
-    name: "",
-    description: "",
-    website: "",
-    location: "",
-    file: null,
-  });
+  const [input, setInput] = useState({});
 
   const { singleCompany } = useSelector(
     (store) => store.company
   );
+  const formInput = {
+    name: singleCompany?.name || "",
+    description: singleCompany?.description || "",
+    website: singleCompany?.website || "",
+    location: singleCompany?.location || "",
+    industry: singleCompany?.industry || "",
+    companySize: singleCompany?.companySize || "",
+    contactEmail: singleCompany?.contactEmail || "",
+    contactPhone: singleCompany?.contactPhone || "",
+    file: null,
+    ...input,
+  };
 
   const [loading, setLoading] = useState(false);
 
   const navigate = useNavigate();
 
   const changeEventHandler = (e) => {
-    setInput({
-      ...input,
-      [e.target.name]: e.target.value,
-    });
+    setInput((current) => ({ ...current, [e.target.name]: e.target.value }));
   };
 
   const changeFileHandler = (e) => {
@@ -66,14 +69,18 @@ const CompanySetup = () => {
 
     const formData = new FormData();
 
-    formData.append("name", input.name);
-    formData.append("description", input.description);
-    formData.append("website", input.website);
-    formData.append("location", input.location);
+    formData.append("name", formInput.name);
+    formData.append("description", formInput.description);
+    formData.append("website", formInput.website);
+    formData.append("location", formInput.location);
+    formData.append("industry", formInput.industry);
+    formData.append("companySize", formInput.companySize);
+    formData.append("contactEmail", formInput.contactEmail);
+    formData.append("contactPhone", formInput.contactPhone);
     formData.append("country", "India");
 
-    if (input.file) {
-      formData.append("file", input.file);
+    if (formInput.file) {
+      formData.append("file", formInput.file);
     }
 
     try {
@@ -109,21 +116,6 @@ const CompanySetup = () => {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    if (singleCompany) {
-      setInput({
-        name: singleCompany.name || "",
-        description:
-          singleCompany.description || "",
-        website:
-          singleCompany.website || "",
-        location:
-          singleCompany.location || "",
-        file: null,
-      });
-    }
-  }, [singleCompany]);
 
   return (
     <>
@@ -248,7 +240,9 @@ const CompanySetup = () => {
                   <Input
                     type="text"
                     name="name"
-                    value={input.name}
+                    required
+                    maxLength={120}
+                    value={formInput.name}
                     onChange={
                       changeEventHandler
                     }
@@ -262,9 +256,9 @@ const CompanySetup = () => {
                   </Label>
 
                   <Input
-                    type="text"
+                    type="url"
                     name="description"
-                    value={input.description}
+                    value={formInput.description}
                     onChange={
                       changeEventHandler
                     }
@@ -289,13 +283,32 @@ const CompanySetup = () => {
                       <Input
                         type="text"
                         name="website"
-                        value={input.website}
+                        value={formInput.website}
                         onChange={
                           changeEventHandler
                         }
                         className="pl-10 h-12 rounded-xl"
                       />
 
+                    </div>
+
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div>
+                        <Label className="mb-2 block" htmlFor="industry">Industry</Label>
+                        <Input id="industry" name="industry" value={formInput.industry} onChange={changeEventHandler} maxLength={120} placeholder="Software, healthcare, education..." className="h-12 rounded-xl" />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block" htmlFor="companySize">Company size</Label>
+                        <Input id="companySize" name="companySize" value={formInput.companySize} onChange={changeEventHandler} maxLength={40} placeholder="e.g. 51-200 employees" className="h-12 rounded-xl" />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block" htmlFor="contactEmail">Contact email</Label>
+                        <Input id="contactEmail" name="contactEmail" type="email" value={formInput.contactEmail} onChange={changeEventHandler} maxLength={254} placeholder="hiring@example.com" className="h-12 rounded-xl" />
+                      </div>
+                      <div>
+                        <Label className="mb-2 block" htmlFor="contactPhone">Contact phone</Label>
+                        <Input id="contactPhone" name="contactPhone" type="tel" value={formInput.contactPhone} onChange={changeEventHandler} maxLength={40} placeholder="+91 ..." className="h-12 rounded-xl" />
+                      </div>
                     </div>
                   </div>
 
@@ -316,7 +329,7 @@ const CompanySetup = () => {
                         name="location"
                         list="company-india-locations"
                         required
-                        value={input.location}
+                        value={formInput.location}
                         onChange={
                           changeEventHandler
                         }
@@ -340,15 +353,15 @@ const CompanySetup = () => {
 
                   <div className="border-2 border-dashed border-purple-200 rounded-2xl p-6 text-center bg-purple-50/20">
 
-                    {input.file ? (
+                    {formInput.file ? (
                       <div className="flex flex-col items-center gap-2 mb-3">
                         <img
-                          src={URL.createObjectURL(input.file)}
+                          src={URL.createObjectURL(formInput.file)}
                           alt="New Company Logo Preview"
                           className="w-20 h-20 rounded-2xl object-cover border-2 border-[#6A38C2] shadow-sm"
                         />
                         <p className="text-xs font-medium text-gray-700 truncate max-w-[220px]">
-                          {input.file.name}
+                          {formInput.file.name}
                         </p>
                         <button
                           type="button"

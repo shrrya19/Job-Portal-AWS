@@ -7,6 +7,11 @@ const eventSlice = createSlice({
         singleEvent: null,
         allAdminEvents: [],
         searchEventByText: "",
+        eventFilters: {
+            category: "",
+            mode: "",
+            price: "",
+        },
     },
     reducers: {
         setAllEvents: (state, action) => {
@@ -21,13 +26,41 @@ const eventSlice = createSlice({
             state.allAdminEvents = action.payload;
         },
 
+        setEventRegistration: (state, action) => {
+            const { eventId, isRegistered, seatsLeft, registrationCount } = action.payload;
+            state.allEvents = state.allEvents.map((event) =>
+                event._id === eventId
+                    ? { ...event, isRegistered, seatsLeft, registrationCount }
+                    : event
+            );
+            if (state.singleEvent?._id === eventId) {
+                state.singleEvent = {
+                    ...state.singleEvent,
+                    isRegistered,
+                    seatsLeft,
+                    registrationCount,
+                };
+            }
+        },
+
         setSearchEventByText: (state, action) => {
             state.searchEventByText = action.payload;
+        },
+
+        setEventFilters: (state, action) => {
+            state.eventFilters = { ...state.eventFilters, ...action.payload };
         },
 
     }
 });
 
-export const { setAllEvents, setSingleEvent, setAllAdminEvents, setSearchEventByText } = eventSlice.actions;
+export const {
+    setAllEvents,
+    setSingleEvent,
+    setAllAdminEvents,
+    setEventRegistration,
+    setSearchEventByText,
+    setEventFilters,
+} = eventSlice.actions;
 
 export default eventSlice.reducer;

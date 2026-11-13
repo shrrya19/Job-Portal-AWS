@@ -9,7 +9,7 @@ const applicationSlice = createSlice({
             state.applicants = action.payload;
         },
         updateApplicantStage: (state, action) => {
-            const { applicationId, status, stageDetails, stageHistory } = action.payload;
+            const { applicationId, status, stageDetails, stageHistory, recruiterNotes } = action.payload;
             if (state.applicants?.applications) {
                 state.applicants.applications = state.applicants.applications.map((app) =>
                     app._id === applicationId
@@ -18,6 +18,7 @@ const applicationSlice = createSlice({
                             status,
                             stageDetails: { ...app.stageDetails, ...stageDetails },
                             stageHistory: stageHistory || app.stageHistory,
+                            ...(recruiterNotes !== undefined ? { recruiterNotes } : {}),
                         }
                         : app
                 );

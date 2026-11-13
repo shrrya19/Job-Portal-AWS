@@ -325,10 +325,7 @@ const Profile = () => {
 
         </div>
 
-        <UpdateProfileDialog
-          open={open}
-          setOpen={setOpen}
-        />
+        {open && <UpdateProfileDialog open={open} setOpen={setOpen} />}
       </div>
     </>
   );

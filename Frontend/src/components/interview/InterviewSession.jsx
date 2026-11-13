@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import {
@@ -8,9 +8,6 @@ import {
   ChevronLeft,
   ChevronRight,
   Send,
-  Save,
-  CheckCircle2,
-  AlertTriangle,
   Loader2,
   HelpCircle,
   Briefcase
@@ -28,16 +25,19 @@ const InterviewSession = () => {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [answers, setAnswers] = useState({});
+  const answersRef = useRef({});
   const [savingAnswer, setSavingAnswer] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [confirmModalOpen, setConfirmModalOpen] = useState(false);
+  const finalSubmitRef = useRef(null);
 
   // Timer state
   const [timeLeftSeconds, setTimeLeftSeconds] = useState(45 * 60);
 
   // Speech Recognition state
   const [isListening, setIsListening] = useState(false);
-  const [speechSupported, setSpeechSupported] = useState(false);
+  const speechSupported = typeof window !== "undefined" &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition);
   const recognitionRef = useRef(null);
 
   // Fetch session and start
@@ -64,6 +64,7 @@ const InterviewSession = () => {
           (fetchedInterview.questions || []).forEach((q) => {
             ansMap[q.id] = q.studentAnswer || "";
           });
+          answersRef.current = ansMap;
           setAnswers(ansMap);
 
           // Set timer
@@ -96,7 +97,7 @@ const InterviewSession = () => {
         if (prev <= 1) {
           clearInterval(timer);
           toast.warning("Time has expired! Submitting your answers.");
-          handleFinalSubmit();
+          finalSubmitRef.current?.();
           return 0;
         }
         return prev - 1;
@@ -110,7 +111,6 @@ const InterviewSession = () => {
   useEffect(() => {
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (SpeechRecognition) {
-      setSpeechSupported(true);
       const recognition = new SpeechRecognition();
       recognition.continuous = true;
       recognition.interimResults = true;
@@ -119,16 +119,17 @@ const InterviewSession = () => {
       recognition.onresult = (event) => {
         let transcript = "";
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          if (event.results[i].isFinal) transcript += event.results[i][0].transcript;
         }
 
         if (transcript.trim() && interview?.questions?.[currentIndex]) {
           const qId = interview.questions[currentIndex].id;
           setAnswers((prev) => {
             const currentVal = prev[qId] || "";
-            // Append or update smoothly
             const updated = currentVal ? `${currentVal.trim()} ${transcript}` : transcript;
-            return { ...prev, [qId]: updated };
+            const next = { ...prev, [qId]: updated };
+            answersRef.current = next;
+            return next;
           });
         }
       };
@@ -144,6 +145,10 @@ const InterviewSession = () => {
 
       recognitionRef.current = recognition;
     }
+    return () => {
+      recognitionRef.current?.stop();
+      recognitionRef.current = null;
+    };
   }, [currentIndex, interview]);
 
   const toggleListening = () => {
@@ -163,6 +168,7 @@ const InterviewSession = () => {
         toast.success("Listening... Speak your answer clearly into your microphone.");
       } catch (err) {
         console.error("Speech start error:", err);
+        toast.error("Could not start voice input. Check microphone permissions or type your answer.");
       }
     }
   };
@@ -170,7 +176,11 @@ const InterviewSession = () => {
   const handleAnswerChange = (val) => {
     if (!interview?.questions?.[currentIndex]) return;
     const qId = interview.questions[currentIndex].id;
-    setAnswers((prev) => ({ ...prev, [qId]: val }));
+    setAnswers((prev) => {
+      const next = { ...prev, [qId]: val };
+      answersRef.current = next;
+      return next;
+    });
   };
 
   // Save current question answer to backend
@@ -216,7 +226,7 @@ const InterviewSession = () => {
   };
 
   // Final submit
-  const handleFinalSubmit = async () => {
+  const handleFinalSubmit = useCallback(async () => {
     if (isListening && recognitionRef.current) {
       recognitionRef.current.stop();
       setIsListening(false);
@@ -224,7 +234,7 @@ const InterviewSession = () => {
 
     setSubmitting(true);
     try {
-      const formattedAnswers = Object.entries(answers).map(([qId, ans]) => ({
+      const formattedAnswers = Object.entries(answersRef.current).map(([qId, ans]) => ({
         questionId: qId,
         answer: ans
       }));
@@ -248,7 +258,11 @@ const InterviewSession = () => {
       setSubmitting(false);
       setConfirmModalOpen(false);
     }
-  };
+  }, [id, isListening, navigate]);
+
+  useEffect(() => {
+    finalSubmitRef.current = handleFinalSubmit;
+  }, [handleFinalSubmit]);
 
   if (loading) {
     return (
@@ -501,4 +515,3 @@ const InterviewSession = () => {
 };
 
 export default InterviewSession;
-

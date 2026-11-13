@@ -3,6 +3,12 @@ import { Job } from "../models/job.model.js";
 import { User } from "../models/user.model.js";
 import { Application } from "../models/application.model.js";
 import { generateJobSpecificQuestions, evaluateInterviewAnswers } from "../utils/interviewEngine.js";
+import {
+  getInterviewDayRange,
+  getLocalToday,
+  INTERVIEW_TIME_SLOTS,
+  parseInterviewDate
+} from "../utils/interviewValidation.js";
 
 // ================= GET ELIGIBLE JOBS FOR INTERVIEW =================
 export const getEligibleJobs = async (req, res) => {
@@ -145,14 +151,21 @@ export const scheduleInterview = async (req, res) => {
       durationMinutes = 45,
       interviewType = "Mixed",
       mode = "Self-Practice Demo",
-      notes = ""
+      notes = "",
+      timezoneOffset = 0
     } = req.body;
 
-    if (!jobId || !scheduledDate || !timeSlot) {
+    if (!jobId || !scheduledDate || !timeSlot || !INTERVIEW_TIME_SLOTS.includes(timeSlot)) {
       return res.status(400).json({
-        message: "Job, scheduled date, and time slot are required.",
+        message: "Choose a job, a valid date, and an available time slot.",
         success: false
       });
+    }
+    if (![30, 45, 60].includes(Number(durationMinutes)) ||
+        !["Technical", "HR", "Behavioral", "Mixed"].includes(interviewType) ||
+        !["Self-Practice Demo", "Virtual Video", "In-Person"].includes(mode) ||
+        typeof notes !== "string" || notes.length > 2000) {
+      return res.status(400).json({ message: "Choose valid interview settings and keep notes under 2,000 characters.", success: false });
     }
 
     // 1. Verify Job existence
@@ -165,32 +178,29 @@ export const scheduleInterview = async (req, res) => {
     }
 
     // 2. Date validation (Cannot schedule in the past)
-    const interviewDate = new Date(scheduledDate);
-    if (isNaN(interviewDate.getTime())) {
+    const interviewDate = parseInterviewDate(scheduledDate);
+    const today = getLocalToday(timezoneOffset);
+    if (!interviewDate || !today) {
       return res.status(400).json({
         message: "Invalid interview date provided.",
         success: false
       });
     }
 
-    // Compare date to start of current day in UTC
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const schedDay = new Date(interviewDate.getFullYear(), interviewDate.getMonth(), interviewDate.getDate());
-
-    if (schedDay < todayStart) {
+    if (scheduledDate < today) {
       return res.status(400).json({
         message: "Cannot schedule an interview session in the past.",
         success: false
       });
     }
+    const { start, end } = getInterviewDayRange(interviewDate);
 
     // 3. Prevent duplicate bookings / conflicts for the same student on the same date and slot
     const existingConflict = await Interview.findOne({
       studentId,
       scheduledDate: {
-        $gte: new Date(interviewDate.setHours(0, 0, 0, 0)),
-        $lte: new Date(interviewDate.setHours(23, 59, 59, 999))
+        $gte: start,
+        $lte: end
       },
       timeSlot,
       status: { $in: ["Scheduled", "In Progress"] }
@@ -219,12 +229,12 @@ export const scheduleInterview = async (req, res) => {
       companyName: job.company?.name || "Hiring Partner",
       jobDescriptionSnapshot: job.description || "",
       requiredSkills: job.requirements || [],
-      scheduledDate: schedDay,
+      scheduledDate: interviewDate,
       timeSlot,
-      durationMinutes: Number(durationMinutes) || 45,
+      durationMinutes: Number(durationMinutes),
       interviewType,
       mode,
-      notes: notes?.trim() || "",
+      notes: notes.trim(),
       status: "Scheduled",
       questions: generatedQuestions
     });
@@ -489,11 +499,11 @@ export const rescheduleInterview = async (req, res) => {
   try {
     const studentId = req.id;
     const { id } = req.params;
-    const { scheduledDate, timeSlot } = req.body;
+    const { scheduledDate, timeSlot, timezoneOffset = 0 } = req.body;
 
-    if (!scheduledDate || !timeSlot) {
+    if (!scheduledDate || !INTERVIEW_TIME_SLOTS.includes(timeSlot)) {
       return res.status(400).json({
-        message: "New scheduled date and time slot are required.",
+        message: "Choose a valid date and available time slot.",
         success: false
       });
     }
@@ -520,25 +530,29 @@ export const rescheduleInterview = async (req, res) => {
       });
     }
 
-    const interviewDate = new Date(scheduledDate);
-    const now = new Date();
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const schedDay = new Date(interviewDate.getFullYear(), interviewDate.getMonth(), interviewDate.getDate());
-
-    if (schedDay < todayStart) {
+    const interviewDate = parseInterviewDate(scheduledDate);
+    const today = getLocalToday(timezoneOffset);
+    if (!interviewDate || !today) {
+      return res.status(400).json({
+        message: "Invalid interview date provided.",
+        success: false
+      });
+    }
+    if (scheduledDate < today) {
       return res.status(400).json({
         message: "Cannot reschedule an interview to a past date.",
         success: false
       });
     }
+    const { start, end } = getInterviewDayRange(interviewDate);
 
     // Check conflict
     const conflict = await Interview.findOne({
       _id: { $ne: id },
       studentId,
       scheduledDate: {
-        $gte: new Date(interviewDate.setHours(0, 0, 0, 0)),
-        $lte: new Date(interviewDate.setHours(23, 59, 59, 999))
+        $gte: start,
+        $lte: end
       },
       timeSlot,
       status: { $in: ["Scheduled", "In Progress"] }
@@ -551,7 +565,7 @@ export const rescheduleInterview = async (req, res) => {
       });
     }
 
-    interview.scheduledDate = schedDay;
+    interview.scheduledDate = interviewDate;
     interview.timeSlot = timeSlot;
     interview.status = "Scheduled";
     interview.rescheduledCount = (interview.rescheduledCount || 0) + 1;

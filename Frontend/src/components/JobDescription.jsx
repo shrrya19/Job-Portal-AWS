@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 import { Button } from "./ui/button";
 import { Badge } from "./ui/badge";
-import { useParams, Link } from "react-router-dom";
-import { Video } from "lucide-react";
+import { useParams, Link, useNavigate } from "react-router-dom";
+import { ArrowLeft, Video } from "lucide-react";
 import axios from "axios";
 import { useDispatch, useSelector } from "react-redux";
 import { motion } from "framer-motion";
@@ -18,6 +18,7 @@ const JobDescription = () => {
 
   const params = useParams();
   const jobId = params.id;
+  const navigate = useNavigate();
   const dispatch = useDispatch();
 
   const [isApplied, setIsApplied] = useState(false);
@@ -84,6 +85,15 @@ const JobDescription = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-white py-10">
       <div className="max-w-6xl mx-auto px-4">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => navigate(window.history.state?.idx > 0 ? -1 : "/jobs")}
+          className="mb-5 rounded-xl border-purple-200 bg-white text-[#6A38C2] hover:bg-purple-50"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Jobs
+        </Button>
 
         {/* Main Card */}
 

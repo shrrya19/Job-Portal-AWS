@@ -7,6 +7,7 @@ import Jobs from "./components/Jobs";
 import Browse from "./components/Browse";
 import SavedJobs from "./components/SavedJobs";
 import Profile from "./components/Profile";
+import StudentDashboard from "./components/StudentDashboard";
 import JobDescription from "./components/JobDescription";
 
 // Events
@@ -29,6 +30,9 @@ import AdminJobs from "./components/admin/AdminJobs";
 import PostJob from "./components/admin/PostJob";
 import Applicants from "./components/admin/Applicants";
 import RecruiterDashboard from "./components/admin/RecruiterDashboard";
+import CandidateRanking from "./components/admin/CandidateRanking";
+import RecruiterEvents from "./components/admin/RecruiterEvents";
+import RecruiterEventForm from "./components/admin/RecruiterEventForm";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 
 import "./App.css";
@@ -83,6 +87,10 @@ const appRouter = createBrowserRouter([
     element: <Profile />,
   },
   {
+    path: "/student/dashboard",
+    element: <StudentDashboard />,
+  },
+  {
     path: "/ats-resume",
     element: <AtsResumeHub />,
   },
@@ -105,6 +113,38 @@ const appRouter = createBrowserRouter([
     element: (
       <ProtectedRoute>
         <RecruiterDashboard />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/candidates",
+    element: (
+      <ProtectedRoute>
+        <CandidateRanking />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/events",
+    element: (
+      <ProtectedRoute>
+        <RecruiterEvents />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/events/create",
+    element: (
+      <ProtectedRoute>
+        <RecruiterEventForm />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/events/:id/edit",
+    element: (
+      <ProtectedRoute>
+        <RecruiterEventForm />
       </ProtectedRoute>
     ),
   },

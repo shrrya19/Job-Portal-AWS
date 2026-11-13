@@ -1,9 +1,12 @@
-import React from "react";
 import { CalendarDays, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 import Navbar from "../shared/Navbar";
 
 const EventHero = () => {
+    const scrollTo = (id) => {
+        document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    };
+
     return (
         <div>
             <Navbar />
@@ -45,6 +48,8 @@ const EventHero = () => {
 
                         <Button
                             size="lg"
+                            type="button"
+                            onClick={() => scrollTo("all-upcoming-events")}
                             className="bg-white text-black hover:bg-gray-200"
                         >
                             Explore Events
@@ -55,6 +60,8 @@ const EventHero = () => {
                         <Button
                             size="lg"
                             variant="secondary"
+                            type="button"
+                            onClick={() => scrollTo("event-filters")}
                         >
                             Browse Categories
                         </Button>

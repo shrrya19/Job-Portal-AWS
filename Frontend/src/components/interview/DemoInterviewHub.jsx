@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import { useSelector } from "react-redux";
@@ -9,17 +9,11 @@ import {
   Sparkles,
   Award,
   CheckCircle2,
-  AlertCircle,
   PlayCircle,
   Plus,
-  RefreshCw,
-  XCircle,
   Briefcase,
   ChevronRight,
   Loader2,
-  FileText,
-  Filter,
-  Info
 } from "lucide-react";
 import Navbar from "../shared/Navbar";
 import Footer from "../shared/Footer";
@@ -39,6 +33,22 @@ const AVAILABLE_TIME_SLOTS = [
   "06:00 PM - 06:45 PM",
   "07:30 PM - 08:15 PM"
 ];
+
+const toLocalDateInput = (date = new Date()) => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const formatInterviewDate = (value) => {
+  const [year, month, day] = String(value).slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+};
 
 const DemoInterviewHub = () => {
   const { user } = useSelector((store) => store.auth) || {};
@@ -67,18 +77,16 @@ const DemoInterviewHub = () => {
   // Eligible jobs for scheduling
   const [eligibleJobs, setEligibleJobs] = useState([]);
   const [loadingJobs, setLoadingJobs] = useState(false);
+  const [loadError, setLoadError] = useState("");
   const [jobFilter, setJobFilter] = useState("all"); // 'all' | 'applied' | 'saved'
 
   // Scheduling form state
   const [selectedJob, setSelectedJob] = useState(null);
-  const [scheduledDate, setScheduledDate] = useState(() => {
-    const today = new Date();
-    return today.toISOString().split("T")[0];
-  });
+  const [scheduledDate, setScheduledDate] = useState(() => toLocalDateInput());
   const [selectedTimeSlot, setSelectedTimeSlot] = useState(AVAILABLE_TIME_SLOTS[0]);
   const [durationMinutes, setDurationMinutes] = useState(45);
   const [interviewType, setInterviewType] = useState("Mixed");
-  const [mode, setMode] = useState("Self-Practice Demo");
+  const mode = "Self-Practice Demo";
   const [notes, setNotes] = useState("");
   const [scheduling, setScheduling] = useState(false);
 
@@ -92,7 +100,7 @@ const DemoInterviewHub = () => {
   const [modalActionLoading, setModalActionLoading] = useState(false);
 
   // 1. Fetch student's interview history
-  const fetchMyInterviews = async () => {
+  const fetchMyInterviews = useCallback(async () => {
     setLoadingHistory(true);
     try {
       const res = await axios.get(`${INTERVIEW_API_ENDPOINT}/my-interviews`, {
@@ -100,49 +108,19 @@ const DemoInterviewHub = () => {
       });
 
       if (res.data?.success) {
+        setLoadError("");
         setInterviews(res.data.interviews || []);
         if (res.data.stats) setStats(res.data.stats);
       }
     } catch (err) {
       console.error("Fetch interviews error:", err);
+      setLoadError(err?.response?.data?.message || "Could not load interview sessions. Please sign in as a student and try again.");
     } finally {
       setLoadingHistory(false);
     }
-  };
+  }, []);
 
-  // 2. Fetch eligible jobs
-  const fetchEligibleJobs = async () => {
-    setLoadingJobs(true);
-    try {
-      const res = await axios.get(`${INTERVIEW_API_ENDPOINT}/eligible-jobs`, {
-        withCredentials: true,
-      });
-
-      if (res.data?.success) {
-        const jobs = res.data.jobs || [];
-        setEligibleJobs(jobs);
-
-        // Pre-select job if initialJobId passed in query
-        if (initialJobId) {
-          const match = jobs.find((j) => j._id === initialJobId);
-          if (match) {
-            setSelectedJob(match);
-            fetchJobPreview(match._id);
-          }
-        } else if (jobs.length > 0 && !selectedJob) {
-          setSelectedJob(jobs[0]);
-          fetchJobPreview(jobs[0]._id);
-        }
-      }
-    } catch (err) {
-      console.error("Fetch eligible jobs error:", err);
-    } finally {
-      setLoadingJobs(false);
-    }
-  };
-
-  // 3. Fetch preview questions for selected job
-  const fetchJobPreview = async (jobId, type = interviewType) => {
+  const fetchJobPreview = useCallback(async (jobId, type = "Mixed") => {
     if (!jobId) return;
     setLoadingPreview(true);
     try {
@@ -155,19 +133,53 @@ const DemoInterviewHub = () => {
       }
     } catch (err) {
       console.error("Fetch job preview error:", err);
+      toast.error(err?.response?.data?.message || "Unable to prepare questions for this job.");
     } finally {
       setLoadingPreview(false);
     }
-  };
+  }, []);
+
+  // 2. Fetch eligible jobs
+  const fetchEligibleJobs = useCallback(async () => {
+    setLoadingJobs(true);
+    try {
+      const res = await axios.get(`${INTERVIEW_API_ENDPOINT}/eligible-jobs`, {
+        withCredentials: true,
+      });
+
+      if (res.data?.success) {
+        setLoadError("");
+        const jobs = res.data.jobs || [];
+        setEligibleJobs(jobs);
+        const selected = initialJobId
+          ? jobs.find((job) => job._id === initialJobId)
+          : jobs[0];
+        if (selected) {
+          setSelectedJob(selected);
+          fetchJobPreview(selected._id);
+        } else if (initialJobId) {
+          setLoadError("The selected job is not available for interview practice.");
+        }
+      }
+    } catch (err) {
+      console.error("Fetch eligible jobs error:", err);
+      setLoadError(err?.response?.data?.message || "Could not load jobs for interview practice. Please sign in as a student and try again.");
+    } finally {
+      setLoadingJobs(false);
+    }
+  }, [fetchJobPreview, initialJobId]);
 
   useEffect(() => {
-    fetchMyInterviews();
-    fetchEligibleJobs();
-  }, []);
+    const timer = window.setTimeout(() => {
+      fetchMyInterviews();
+      fetchEligibleJobs();
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [fetchEligibleJobs, fetchMyInterviews]);
 
   const handleSelectJob = (job) => {
     setSelectedJob(job);
-    fetchJobPreview(job._id);
+    fetchJobPreview(job._id, interviewType);
   };
 
   // Handle interview scheduling submission
@@ -185,10 +197,7 @@ const DemoInterviewHub = () => {
     }
 
     // Verify date is not in the past
-    const chosen = new Date(scheduledDate);
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    if (chosen < today) {
+    if (scheduledDate < toLocalDateInput()) {
       toast.error("Cannot schedule an interview session in the past.");
       return;
     }
@@ -202,7 +211,8 @@ const DemoInterviewHub = () => {
         durationMinutes,
         interviewType,
         mode,
-        notes
+        notes,
+        timezoneOffset: new Date().getTimezoneOffset()
       };
 
       const res = await axios.post(`${INTERVIEW_API_ENDPOINT}/schedule`, payload, {
@@ -233,7 +243,11 @@ const DemoInterviewHub = () => {
     try {
       const res = await axios.post(
         `${INTERVIEW_API_ENDPOINT}/${rescheduleModal.interview._id}/reschedule`,
-        { scheduledDate: rescheduleModal.newDate, timeSlot: rescheduleModal.newSlot },
+        {
+          scheduledDate: rescheduleModal.newDate,
+          timeSlot: rescheduleModal.newSlot,
+          timezoneOffset: new Date().getTimezoneOffset()
+        },
         { withCredentials: true }
       );
 
@@ -282,6 +296,13 @@ const DemoInterviewHub = () => {
     <div className="min-h-screen bg-gradient-to-b from-purple-50/60 via-white to-gray-50 flex flex-col justify-between">
       <div>
         <Navbar />
+        {loadError && (
+          <div role="alert" className="mx-auto mt-5 max-w-7xl px-4">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+              {loadError} <Link to="/login" className="font-semibold underline">Log in</Link>
+            </div>
+          </div>
+        )}
 
         {/* HERO BANNER & STATS */}
         <section className="bg-gradient-to-r from-[#3B1578] via-[#5B21B6] to-[#7C3AED] text-white py-12 px-4 shadow-inner">
@@ -420,7 +441,6 @@ const DemoInterviewHub = () => {
                     const isCompleted = item.status === "Completed";
                     const isCancelled = item.status === "Cancelled";
                     const isInProgress = item.status === "In Progress";
-                    const isScheduled = item.status === "Scheduled";
 
                     const statusStyle = isCompleted
                       ? "bg-emerald-50 text-emerald-700 border-emerald-200"
@@ -456,12 +476,7 @@ const DemoInterviewHub = () => {
                             <div className="flex items-center gap-2">
                               <Calendar size={13} className="text-[#6A38C2]" />
                               <span>
-                                {new Date(item.scheduledDate).toLocaleDateString(undefined, {
-                                  weekday: "short",
-                                  month: "short",
-                                  day: "numeric",
-                                  year: "numeric"
-                                })}
+                                {formatInterviewDate(item.scheduledDate)}
                               </span>
                             </div>
                             <div className="flex items-center gap-2">
@@ -694,7 +709,7 @@ const DemoInterviewHub = () => {
                       <Label className="text-xs font-semibold text-gray-700">Interview Date *</Label>
                       <input
                         type="date"
-                        min={new Date().toISOString().split("T")[0]}
+                        min={toLocalDateInput()}
                         value={scheduledDate}
                         onChange={(e) => setScheduledDate(e.target.value)}
                         required
@@ -923,7 +938,7 @@ const DemoInterviewHub = () => {
                 <Label className="text-xs font-semibold text-gray-700">New Date *</Label>
                 <input
                   type="date"
-                  min={new Date().toISOString().split("T")[0]}
+                  min={toLocalDateInput()}
                   value={rescheduleModal.newDate}
                   onChange={(e) => setRescheduleModal((prev) => ({ ...prev, newDate: e.target.value }))}
                   className="mt-1 w-full px-3 py-2 text-sm rounded-xl border"

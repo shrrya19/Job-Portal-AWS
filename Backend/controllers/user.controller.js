@@ -46,9 +46,18 @@ export const register = async (req, res) => {
         const email = req.body.email?.trim().toLowerCase();
         const phoneNumber = req.body.phoneNumber ? String(req.body.phoneNumber).trim() : "";
 
-        if (!fullName || !email || !phoneNumber || !password || !role) {
+        if (
+            typeof fullName !== "string" ||
+            !fullName.trim() ||
+            fullName.trim().length > 120 ||
+            !email ||
+            !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ||
+            !phoneNumber ||
+            !password ||
+            !role
+        ) {
             return res.status(400).json({
-                message: "All fields are required",
+                message: "Enter a valid name, email, phone number, password, and account role.",
                 success: false
             });
         }
@@ -114,7 +123,7 @@ export const register = async (req, res) => {
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await User.create({
-            fullName,
+            fullName: fullName.trim(),
             email,
             phoneNumber: phoneValidation.cleanPhone,
             password: hashedPassword,
@@ -131,6 +140,12 @@ export const register = async (req, res) => {
 
     } catch (error) {
         console.error("REGISTER ERROR:", error);
+        if (error?.code === 11000 && error?.keyPattern?.email) {
+            return res.status(409).json({
+                message: "An account already exists with this email address.",
+                success: false
+            });
+        }
         return res.status(500).json({
             message: "Server error",
             success: false
@@ -245,7 +260,8 @@ export const logout = async (req, res) => {
 export const updateProfile = async (req, res) => {
     try {
         const { fullName, phoneNumber, bio, skills } = req.body;
-        const email = req.body.email?.trim().toLowerCase();
+        const submittedEmail = typeof req.body.email === "string" ? req.body.email.trim() : "";
+        const email = submittedEmail ? submittedEmail.toLowerCase() : "";
         const userId = req.id;
 
         let user = await User.findById(userId);
@@ -257,7 +273,8 @@ export const updateProfile = async (req, res) => {
             });
         }
 
-        if (email && email !== user.email) {
+        const currentEmail = typeof user.email === "string" ? user.email.trim().toLowerCase() : "";
+        if (email && email !== currentEmail) {
             const existingUser = await User.findOne({
                 _id: { $ne: userId },
                 email: {
@@ -273,8 +290,18 @@ export const updateProfile = async (req, res) => {
             }
         }
 
-        if (fullName) user.fullName = fullName;
-        if (email) user.email = email;
+        if (fullName !== undefined) {
+            if (typeof fullName !== "string" || !fullName.trim() || fullName.trim().length > 120) {
+                return res.status(400).json({ message: "Enter a name between 1 and 120 characters.", success: false });
+            }
+            user.fullName = fullName.trim();
+        }
+        if (email && email !== currentEmail) {
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                return res.status(400).json({ message: "Enter a valid email address.", success: false });
+            }
+            user.email = email;
+        }
         if (phoneNumber) {
             const phoneValidation = validatePhoneNumber(phoneNumber);
             if (!phoneValidation.isValid) {
@@ -292,9 +319,14 @@ export const updateProfile = async (req, res) => {
 
         if (bio !== undefined) user.profile.bio = bio;
         if (skills !== undefined) {
-            user.profile.skills = Array.isArray(skills)
+            const parsedSkills = Array.isArray(skills)
                 ? skills.map((skill) => String(skill).trim()).filter(Boolean)
                 : String(skills).split(",").map((skill) => skill.trim()).filter(Boolean);
+            if (parsedSkills.some((skill) => skill.length > 80)) {
+                return res.status(400).json({ message: "Each skill must be 80 characters or fewer.", success: false });
+            }
+            user.profile.skills = [...new Set(parsedSkills)];
+            user.markModified("profile.skills");
         }
 
         const file = req.file;
@@ -345,6 +377,12 @@ export const updateProfile = async (req, res) => {
     } catch (error) {
         console.error("UPDATE PROFILE ERROR:", error);
 
+        if (error?.code === 11000 && error?.keyPattern?.email) {
+            return res.status(409).json({
+                message: "That email address is already in use by another account.",
+                success: false
+            });
+        }
         return res.status(500).json({
             message: "Server error",
             success: false

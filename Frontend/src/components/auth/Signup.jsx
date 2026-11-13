@@ -305,13 +305,10 @@ const Signup = () => {
 
                   <div className="grid grid-cols-2 gap-4 mb-6">
 
-                    <div
-                      onClick={() =>
-                        setInput({
-                          ...input,
-                          role: "student",
-                        })
-                      }
+                    <button
+                      type="button"
+                      aria-pressed={input.role === "student"}
+                      onClick={() => setInput((prev) => ({ ...prev, role: "student" }))}
                       className={`cursor-pointer rounded-2xl border p-4 transition-all ${
                         input.role === "student"
                           ? "border-[#6A38C2] bg-purple-50"
@@ -325,15 +322,12 @@ const Signup = () => {
                       <p className="text-sm text-gray-500 mt-1">
                         Looking for jobs
                       </p>
-                    </div>
+                    </button>
 
-                    <div
-                      onClick={() =>
-                        setInput({
-                          ...input,
-                          role: "recruiter",
-                        })
-                      }
+                    <button
+                      type="button"
+                      aria-pressed={input.role === "recruiter"}
+                      onClick={() => setInput((prev) => ({ ...prev, role: "recruiter" }))}
                       className={`cursor-pointer rounded-2xl border p-4 transition-all ${
                         input.role === "recruiter"
                           ? "border-[#6A38C2] bg-purple-50"
@@ -346,11 +340,10 @@ const Signup = () => {
                           Recruiter
                         </h3>
                       </div>
-
                       <p className="text-sm text-gray-500 mt-1">
                         Hiring candidates
                       </p>
-                    </div>
+                    </button>
 
                   </div>
 

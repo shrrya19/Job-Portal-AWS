@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Filter } from "lucide-react";
 import { Button } from "../ui/button";
+import { setEventFilters } from "@/redux/eventSlice";
 import {
     Select,
     SelectContent,
@@ -10,18 +11,15 @@ import {
 } from "../ui/select";
 
 const EventFilter = () => {
-    const [category, setCategory] = useState("");
-    const [mode, setMode] = useState("");
-    const [price, setPrice] = useState("");
+    const dispatch = useDispatch();
+    const { category, mode, price } = useSelector((store) => store.event.eventFilters);
 
     const resetFilters = () => {
-        setCategory("");
-        setMode("");
-        setPrice("");
+        dispatch(setEventFilters({ category: "", mode: "", price: "" }));
     };
 
     return (
-        <div className="flex flex-wrap items-center gap-4 bg-white rounded-xl border shadow-md p-4 mb-8">
+        <div id="event-filters" className="scroll-mt-24 flex flex-wrap items-center gap-4 bg-white rounded-xl border shadow-md p-4 mb-8">
 
             <div className="flex items-center gap-2">
                 <Filter size={20} />
@@ -32,7 +30,7 @@ const EventFilter = () => {
 
             {/* Category */}
 
-            <Select value={category} onValueChange={setCategory}>
+            <Select value={category} onValueChange={(value) => dispatch(setEventFilters({ category: value }))}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Category" />
                 </SelectTrigger>
@@ -49,7 +47,7 @@ const EventFilter = () => {
 
             {/* Mode */}
 
-            <Select value={mode} onValueChange={setMode}>
+            <Select value={mode} onValueChange={(value) => dispatch(setEventFilters({ mode: value }))}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Mode" />
                 </SelectTrigger>
@@ -63,7 +61,7 @@ const EventFilter = () => {
 
             {/* Price */}
 
-            <Select value={price} onValueChange={setPrice}>
+            <Select value={price} onValueChange={(value) => dispatch(setEventFilters({ price: value }))}>
                 <SelectTrigger className="w-[180px]">
                     <SelectValue placeholder="Price" />
                 </SelectTrigger>

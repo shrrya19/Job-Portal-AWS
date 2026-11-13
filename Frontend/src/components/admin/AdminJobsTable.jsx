@@ -38,6 +38,8 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
 
   const [deletingId, setDeletingId] = useState("");
   const [updatingStatusId, setUpdatingStatusId] = useState("");
+  const [page, setPage] = useState(1);
+  const [sortBy, setSortBy] = useState("newest");
   const filterJobs = allAdminJobs.filter((job) => {
     const status = job.status || "Active";
     const matchesStatus = statusFilter === "All Jobs"
@@ -50,6 +52,15 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
       || job?.company?.name?.toLowerCase().includes(search);
     return matchesStatus && matchesSearch;
   });
+  const sortedJobs = [...filterJobs].sort((first, second) => {
+    if (sortBy === "oldest") return new Date(first.createdAt) - new Date(second.createdAt);
+    if (sortBy === "title") return (first.title || "").localeCompare(second.title || "");
+    return new Date(second.createdAt) - new Date(first.createdAt);
+  });
+  const pageSize = 10;
+  const pageCount = Math.max(1, Math.ceil(sortedJobs.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageJobs = sortedJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -117,6 +128,24 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
 
   return (
     <div className="bg-white rounded-3xl shadow-xl border border-purple-100 overflow-hidden">
+      <div className="flex flex-col gap-3 border-b border-slate-100 p-4 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-sm text-slate-600">{filterJobs.length} {filterJobs.length === 1 ? "job" : "jobs"}</p>
+        <label className="flex items-center gap-2 text-sm text-slate-600">
+          Sort by
+          <select
+            value={sortBy}
+            onChange={(event) => {
+              setSortBy(event.target.value);
+              setPage(1);
+            }}
+            className="h-9 rounded-lg border border-slate-200 bg-white px-2 text-slate-700"
+          >
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="title">Job title</option>
+          </select>
+        </label>
+      </div>
 
       <Table>
 
@@ -158,7 +187,7 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
 
         <TableBody>
 
-          {filterJobs.map((job, index) => (
+          {pageJobs.map((job, index) => (
             <motion.tr
               key={job._id}
               initial={{
@@ -289,6 +318,15 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
         </TableBody>
 
       </Table>
+      {filterJobs.length > pageSize && (
+        <div className="flex items-center justify-between border-t border-slate-100 px-4 py-3">
+          <p className="text-sm text-slate-500">Page {currentPage} of {pageCount}</p>
+          <div className="flex gap-2">
+            <button type="button" disabled={currentPage === 1} onClick={() => setPage(currentPage - 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">Previous</button>
+            <button type="button" disabled={currentPage === pageCount} onClick={() => setPage(currentPage + 1)} className="rounded-lg border border-slate-200 px-3 py-1.5 text-sm disabled:cursor-not-allowed disabled:opacity-40">Next</button>
+          </div>
+        </div>
+      )}
 
     </div>
   );

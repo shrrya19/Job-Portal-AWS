@@ -1,6 +1,28 @@
 import { generateJobSpecificQuestions, evaluateInterviewAnswers } from "./utils/interviewEngine.js";
+import {
+  getInterviewDayRange,
+  getLocalToday,
+  INTERVIEW_TIME_SLOTS,
+  parseInterviewDate
+} from "./utils/interviewValidation.js";
 
 console.log("=== Testing Demo Interview Engine ===");
+
+const parsedDay = parseInterviewDate("2026-11-13");
+if (!parsedDay || parsedDay.toISOString() !== "2026-11-13T00:00:00.000Z") {
+  throw new Error("Interview date-only parsing must be timezone independent.");
+}
+if (parseInterviewDate("2026-02-30") || parseInterviewDate("11/13/2026")) {
+  throw new Error("Invalid interview dates must be rejected.");
+}
+const dayRange = getInterviewDayRange(parsedDay);
+if (dayRange.start.toISOString() !== "2026-11-13T00:00:00.000Z" ||
+    dayRange.end.toISOString() !== "2026-11-13T23:59:59.999Z") {
+  throw new Error("Interview conflict checks must use a stable UTC day range.");
+}
+if (getLocalToday(-330).length !== 10 || !INTERVIEW_TIME_SLOTS.includes("10:00 AM - 10:45 AM")) {
+  throw new Error("Interview scheduling timezone or slot validation failed.");
+}
 
 // 1. Mock Job Data (Java Developer)
 const mockJavaJob = {
@@ -88,4 +110,3 @@ if (fallbackQuestions.length < 4) {
 }
 
 console.log("\nALL DEMO INTERVIEW TESTS PASSED SUCCESSFULLY!");
-

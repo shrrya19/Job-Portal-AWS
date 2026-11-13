@@ -13,6 +13,7 @@ import {
   Video,
   X,
   LayoutDashboard,
+  CalendarDays,
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
@@ -86,6 +87,17 @@ function Navbar() {
 
               {isHomePage && user?.role !== "recruiter" ? (
                 <>
+                  {user?.role === "student" && (
+                    <li>
+                      <Link
+                        to="/student/dashboard"
+                        className={`inline-flex items-center gap-1.5 transition hover:text-violet-700 ${isActive("/student/dashboard") ? "font-semibold text-violet-700" : ""}`}
+                      >
+                        <LayoutDashboard size={16} />
+                        Dashboard
+                      </Link>
+                    </li>
+                  )}
                   <li><a href="#home-top" className="transition hover:text-violet-700">Home</a></li>
                   <li><Link to="/jobs" className="transition hover:text-violet-700">Find Jobs</Link></li>
                   <li><a href="#top-hiring-companies" className="transition hover:text-violet-700">Companies</a></li>
@@ -130,9 +142,40 @@ function Navbar() {
                       Jobs
                     </Link>
                   </li>
+                  <li>
+                    <Link
+                      to="/admin/events"
+                      className={`inline-flex items-center gap-1.5 transition-all duration-200 hover:text-[#6A38C2] ${location.pathname.startsWith("/admin/events")
+                          ? "text-[#6A38C2] font-semibold"
+                          : ""
+                        }`}
+                    >
+                      <CalendarDays size={16} />
+                      Events
+                    </Link>
+                  </li>
+                  <li>
+                    <Link
+                      to="/admin/candidates"
+                      className={`transition-all duration-200 hover:text-[#6A38C2] ${isActive("/admin/candidates") ? "text-[#6A38C2] font-semibold" : ""}`}
+                    >
+                      Candidate ranking
+                    </Link>
+                  </li>
                 </>
               ) : (
                 <>
+                  {user?.role === "student" && (
+                    <li>
+                      <Link
+                        to="/student/dashboard"
+                        className={`inline-flex items-center gap-1.5 transition-all duration-200 hover:text-[#6A38C2] ${isActive("/student/dashboard") ? "text-[#6A38C2] font-semibold" : ""}`}
+                      >
+                        <LayoutDashboard size={16} />
+                        Dashboard
+                      </Link>
+                    </li>
+                  )}
                   <li>
                     <Link to="/" className={`transition-all duration-200 hover:text-[#6A38C2] ${isActive("/") ? "text-[#6A38C2] font-semibold" : ""}`}>
                       Home
@@ -250,6 +293,15 @@ function Navbar() {
 
                       {user?.role !== "recruiter" && (
                         <>
+                          {user?.role === "student" && (
+                            <Link
+                              to="/student/dashboard"
+                              className="flex items-center gap-3 p-2 rounded-lg hover:bg-purple-50 transition-all"
+                            >
+                              <LayoutDashboard size={18} />
+                              <span>Student Dashboard</span>
+                            </Link>
+                          )}
                           <Link
                             to="/profile"
                             className="flex items-center gap-3 p-2 rounded-lg hover:bg-purple-50 transition-all"
@@ -305,6 +357,11 @@ function Navbar() {
             <div className="flex flex-col gap-1">
           {isHomePage && user?.role !== "recruiter" ? (
             <>
+              {user?.role === "student" && (
+                <Link onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-purple-50" to="/student/dashboard">
+                  <LayoutDashboard size={16} /> Dashboard
+                </Link>
+              )}
               <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#home-top">Home</a>
               <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/jobs">Find Jobs</Link>
               <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#top-hiring-companies">Companies</a>
@@ -319,9 +376,18 @@ function Navbar() {
                   </Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/companies">Companies</Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/jobs">Jobs</Link>
+                  <Link onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/events">
+                    <CalendarDays size={16} /> Events
+                  </Link>
+                  <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/candidates">Candidate ranking</Link>
                 </>
               ) : (
                 <>
+                  {user?.role === "student" && (
+                    <Link onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-purple-50" to="/student/dashboard">
+                      <LayoutDashboard size={16} /> Dashboard
+                    </Link>
+                  )}
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/">Home</Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/jobs">Jobs</Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/internships">Internships</Link>

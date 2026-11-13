@@ -1,11 +1,49 @@
-import React from "react";
 import { CalendarDays, MapPin, Users, ArrowRight } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import axios from "axios";
+import { toast } from "sonner";
+import { EVENT_API_ENDPOINT } from "@/utils/constant";
+import { setEventRegistration } from "@/redux/eventSlice";
 
 const EventCard = ({ event }) => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const user = useSelector((store) => store.auth.user);
+  const registrationClosed = new Date(event?.registrationDeadline) <= new Date() ||
+    new Date(event?.eventDate) <= new Date() ||
+    event?.seatsLeft <= 0;
+
+  const registerForEvent = async () => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+    if (user.role !== "student") {
+      toast.error("Only student accounts can register for events.");
+      return;
+    }
+    try {
+      const { data } = await axios.post(
+        `${EVENT_API_ENDPOINT}/${event._id}/register`,
+        {},
+        { withCredentials: true }
+      );
+      if (!data.success) throw new Error(data.message || "Unable to register for this event.");
+      dispatch(setEventRegistration({
+        eventId: event._id,
+        isRegistered: true,
+        seatsLeft: data.event.seatsLeft,
+        registrationCount: data.event.registrationCount,
+      }));
+      toast.success(data.message || "You are registered for this event.");
+    } catch (error) {
+      console.error("Event registration failed:", error);
+      toast.error(error?.response?.data?.message || error.message || "Unable to register for this event.");
+    }
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-md border hover:shadow-xl transition-all duration-300 overflow-hidden">
@@ -31,6 +69,9 @@ const EventCard = ({ event }) => {
         <h2 className="text-xl font-bold line-clamp-2">
           {event?.title}
         </h2>
+        <p className="mt-1 text-sm font-medium text-violet-700">
+          {event?.company?.name || event?.organizer}
+        </p>
 
         {/* Description */}
         <p className="text-gray-500 mt-2 line-clamp-3">
@@ -68,9 +109,10 @@ const EventCard = ({ event }) => {
           </Button>
 
           <Button
-            onClick={() => window.open(event.registrationLink, "_blank")}
+            onClick={registerForEvent}
+            disabled={event?.isRegistered || registrationClosed}
           >
-            Register
+            {event?.isRegistered ? "Registered" : registrationClosed ? "Registration closed" : "Register"}
             <ArrowRight className="ml-2 h-4 w-4" />
           </Button>
 

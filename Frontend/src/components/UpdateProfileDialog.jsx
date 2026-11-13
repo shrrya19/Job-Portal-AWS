@@ -27,7 +27,8 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
     phoneNumber: user?.phoneNumber || "",
     bio: user?.profile?.bio || "",
     skills: user?.profile?.skills?.join(", ") || "",
-    resume: user?.profile?.resume || ""
+    resume: user?.profile?.resume || "",
+    file: null
   })
 
   const dispatch = useDispatch()
@@ -39,33 +40,38 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
       setInput((prev) => ({ ...prev, phoneNumber: sanitizedPhone }));
       return;
     }
-    setInput({ ...input, [name]: value });
+    setInput((prev) => ({ ...prev, [name]: value }));
   };
 
   const fileChangeHandler = (e) => {
     const file = e.target.files?.[0];
-    setInput({ ...input, file });
+    setInput((prev) => ({ ...prev, file }));
   };
 
   const submitHandler = async (e) => {
     e.preventDefault();
 
-    if (input.phoneNumber) {
-      const digitsOnly = String(input.phoneNumber).replace(/\D/g, "");
-      if (digitsOnly.length < 10) {
-        toast.error("Phone number must contain at least 10 digits.");
-        return;
-      }
-      if (digitsOnly.length > 15) {
-        toast.error("Phone number cannot exceed 15 digits.");
-        return;
-      }
+    const digitsOnly = String(input.phoneNumber).replace(/\D/g, "");
+    if (digitsOnly.length < 10 || digitsOnly.length > 15) {
+      toast.error("Phone number must contain 10-15 digits.");
+      return;
+    }
+    if (!input.fullName.trim() || !input.email.trim()) {
+      toast.error("Name and email are required.");
+      return;
+    }
+
+    if (input.file && input.file.size > 10 * 1024 * 1024) {
+      toast.error("Resume or profile photo must be 10 MB or smaller.");
+      return;
     }
 
     const formData = new FormData();
 
-    formData.append("fullName", input.fullName);
-    formData.append("email", input.email);
+    formData.append("fullName", input.fullName.trim());
+    if (input.email.trim().toLowerCase() !== (user?.email || "").trim().toLowerCase()) {
+      formData.append("email", input.email.trim());
+    }
     formData.append("phoneNumber", input.phoneNumber);
     formData.append("bio", input.bio);
     formData.append("skills", input.skills);
@@ -114,7 +120,9 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                   type="text"
                   value={input.fullName}
                   onChange={changeEventHandler}
-                  className="col-span-3" />
+                  className="col-span-3"
+                  required
+                  maxLength={120} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="email" className="text-right">Email</Label>
@@ -124,7 +132,9 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                   type="email"
                   value={input.email}
                   onChange={changeEventHandler}
-                  className="col-span-3" />
+                  className="col-span-3"
+                  required
+                  maxLength={254} />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="number" className="text-right">Phone</Label>
@@ -136,6 +146,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                     value={input.phoneNumber}
                     onChange={changeEventHandler}
                     placeholder="10-15 digit phone number"
+                    required
                   />
                   {input.phoneNumber && input.phoneNumber.replace(/\D/g, "").length < 10 && (
                     <span className="text-[11px] text-amber-600">
@@ -188,7 +199,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
             <DialogFooter>
               {
                 loading ?
-                  <Button className="w-full my-4"><Loader2 className="mr-2 h-4 w-4 animated-spin" /> Please Wait </Button> :
+                  <Button type="button" disabled className="w-full my-4"><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Please Wait </Button> :
                   <Button type="submit" className="w-full my-4 cursor-pointer hover:bg-blue-800">Update</Button>
               }
 

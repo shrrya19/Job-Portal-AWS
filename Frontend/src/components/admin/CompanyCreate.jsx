@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import Navbar from "../shared/Navbar";
 import { Label } from "../ui/label";
 import { Input } from "../ui/input";
@@ -18,7 +18,8 @@ const CompanyCreate = () => {
 
   const [companyName, setCompanyName] = useState("");
 
-  const registerNewCompany = async () => {
+  const registerNewCompany = async (event) => {
+    event.preventDefault();
     try {
       const res = await axios.post(
         `${COMPANY_API_ENDPOINT}/register`,
@@ -98,8 +99,7 @@ const CompanyCreate = () => {
 
               </div>
 
-              <div>
-
+              <form onSubmit={registerNewCompany}>
                 <Label className="mb-2 block font-medium">
                   Company Name
                 </Label>
@@ -111,14 +111,17 @@ const CompanyCreate = () => {
                   onChange={(e) =>
                     setCompanyName(e.target.value)
                   }
+                  required
+                  maxLength={120}
                   className="h-12 rounded-xl"
                 />
 
-              </div>
+                <p className="mt-1 text-xs text-gray-500">A company profile is required before you can publish a job.</p>
 
               <div className="flex gap-4 mt-8">
 
                 <Button
+                  type="button"
                   variant="outline"
                   onClick={() =>
                     navigate("/admin/companies")
@@ -130,7 +133,7 @@ const CompanyCreate = () => {
                 </Button>
 
                 <Button
-                  onClick={registerNewCompany}
+                  type="submit"
                   className="bg-[#6A38C2] hover:bg-[#5B21B6] rounded-xl"
                 >
                   <PlusCircle className="mr-2 h-4 w-4" />
@@ -138,6 +141,7 @@ const CompanyCreate = () => {
                 </Button>
 
               </div>
+              </form>
 
             </div>
           </motion.div>

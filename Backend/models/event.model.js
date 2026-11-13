@@ -57,7 +57,7 @@ const eventSchema = new mongoose.Schema(
 
     registrationLink: {
       type: String,
-      required: true,
+      default: "",
     },
 
     banner: {
@@ -82,6 +82,29 @@ const eventSchema = new mongoose.Schema(
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
+    },
+    company: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Company",
+    },
+    registrations: {
+      type: [
+        new mongoose.Schema(
+          {
+            student: {
+              type: mongoose.Schema.Types.ObjectId,
+              ref: "User",
+              required: true,
+            },
+            registeredAt: {
+              type: Date,
+              default: Date.now,
+            },
+          },
+          { _id: false }
+        ),
+      ],
+      default: [],
     },
   },
   {

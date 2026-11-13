@@ -183,7 +183,7 @@ export const getCompanyById = async (req, res) => {
 // ✅ Update Company
 export const updateCompany = async (req, res) => {
   try {
-    const { name, description, website, location, country } = req.body;
+    const { name, description, website, location, country, industry, companySize, contactEmail, contactPhone } = req.body;
     const company = await Company.findById(req.params.id);
 
     if (!company) {
@@ -212,6 +212,27 @@ export const updateCompany = async (req, res) => {
     if (name !== undefined && name.trim()) company.name = name.trim();
     if (description !== undefined) company.description = description;
     if (website !== undefined) company.website = website;
+    for (const [field, value, maxLength] of [
+      ["industry", industry, 120],
+      ["companySize", companySize, 40],
+      ["contactEmail", contactEmail, 254],
+      ["contactPhone", contactPhone, 40]
+    ]) {
+      if (value === undefined) continue;
+      if (typeof value !== "string" || value.length > maxLength) {
+        return res.status(400).json({
+          message: `${field} must be ${maxLength} characters or fewer.`,
+          success: false
+        });
+      }
+      if (field === "contactEmail" && value.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+        return res.status(400).json({
+          message: "Enter a valid company contact email.",
+          success: false
+        });
+      }
+      company[field] = value.trim();
+    }
     if (location !== undefined) {
       const canonicalLocation = canonicalizeIndiaLocation(location);
       if (!canonicalLocation || canonicalLocation === "Remote") {

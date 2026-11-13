@@ -15,11 +15,20 @@ const applicationSchema = new mongoose.Schema({
         type: String,
         enum: [
             'applied',
+            'under review',
             'shortlisted',
             'interview',
+            'interview scheduled',
+            'interview cleared',
+            'interview not cleared',
+            'offer issued',
+            'offer accepted',
+            'offer rejected',
             'offer extended',
             'hired',
-            'declined'
+            'declined',
+            'selected',
+            'rejected'
         ],
         default: 'applied'
     },
@@ -31,11 +40,17 @@ const applicationSchema = new mongoose.Schema({
             updatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
         }
     ],
+    recruiterNotes: {
+        type: String,
+        default: "",
+        maxlength: 5000
+    },
     stageDetails: {
         interviewDate: { type: Date },
         interviewTime: { type: String, default: "" },
         interviewMode: { type: String, default: "" },
         offerSalary: { type: String, default: "" },
+        offerRespondedAt: { type: Date },
         note: { type: String, default: "" }
     }
 }, { timestamps: true });

@@ -1,13 +1,15 @@
-import React, { useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import { Search, X } from "lucide-react";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
+import { setSearchEventByText } from "@/redux/eventSlice";
 
 const EventSearch = () => {
-    const [search, setSearch] = useState("");
+    const dispatch = useDispatch();
+    const search = useSelector((store) => store.event.searchEventByText);
 
     const clearSearch = () => {
-        setSearch("");
+        dispatch(setSearchEventByText(""));
     };
 
     return (
@@ -21,7 +23,7 @@ const EventSearch = () => {
                 type="text"
                 placeholder="Search events, workshops, hackathons..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => dispatch(setSearchEventByText(e.target.value))}
                 className="border-0 shadow-none focus-visible:ring-0"
             />
 

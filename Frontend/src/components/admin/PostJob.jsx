@@ -16,7 +16,7 @@ import axios from "axios";
 import { JOB_API_ENDPOINT } from "@/utils/constant";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
-import { Loader2, BriefcaseBusiness, Sparkles, X } from "lucide-react";
+import { Loader2, BriefcaseBusiness, Sparkles, X, ArrowLeft } from "lucide-react";
 import { motion } from "framer-motion";
 import useGetAllCompanies from "@/hooks/useGetAllCompanies";
 import IndiaLocationDatalist from "../shared/IndiaLocationDatalist";
@@ -171,6 +171,15 @@ const PostJob = () => {
       <Navbar />
       <main className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-white">
         <div className="mx-auto max-w-6xl px-4 py-8">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={() => navigate("/admin/jobs")}
+            className="mb-5 rounded-xl border-purple-200 bg-white text-[#6A38C2] hover:bg-purple-50"
+          >
+            <ArrowLeft size={16} className="mr-2" />
+            Back to Manage Jobs
+          </Button>
           <motion.header
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}

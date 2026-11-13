@@ -1,18 +1,15 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import axios from "axios";
 import {
-  Award,
   CheckCircle2,
   AlertTriangle,
-  Lightbulb,
   ArrowLeft,
   Calendar,
   Briefcase,
   Loader2,
   BookOpen,
   Sparkles,
-  RefreshCw,
   Info
 } from "lucide-react";
 import Navbar from "../shared/Navbar";
@@ -21,6 +18,15 @@ import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
 import { toast } from "sonner";
 import { INTERVIEW_API_ENDPOINT } from "@/utils/constant";
+
+const formatInterviewDate = (value) => {
+  const [year, month, day] = new Date(value).toISOString().slice(0, 10).split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    year: "numeric"
+  });
+};
 
 const InterviewFeedback = () => {
   const { id } = useParams();
@@ -138,11 +144,7 @@ const InterviewFeedback = () => {
                   <span>•</span>
                   <span className="flex items-center gap-1.5">
                     <Calendar size={16} className="text-[#6A38C2]" />
-                    {new Date(interview.scheduledDate).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric"
-                    })}
+                    {formatInterviewDate(interview.scheduledDate)}
                   </span>
                   <span>•</span>
                   <span className="capitalize">{interview.interviewType} Interview</span>
@@ -395,4 +397,3 @@ const InterviewFeedback = () => {
 };
 
 export default InterviewFeedback;
-
