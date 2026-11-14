@@ -181,7 +181,7 @@ const Home = () => {
 
             {hiringCompanies.length > 0 && (
               <div className="mt-10 border-t border-slate-100 pt-8">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">More Employers Hiring on Hire Nest</p>
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">More Employers Hiring on CareerNest</p>
                 <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
                   {hiringCompanies.map((company) => (
                     <button
@@ -236,11 +236,11 @@ const Home = () => {
           </div>
         </section>
 
-        <section id="why-hire-nest" className="scroll-mt-24 bg-white py-14 sm:py-20">
+        <section id="why-careernest" className="scroll-mt-24 bg-white py-14 sm:py-20">
           <div className="mx-auto max-w-7xl px-5 sm:px-8">
             <div className="mx-auto max-w-2xl text-center">
               <p className="text-xs font-bold uppercase tracking-widest text-violet-700">Platform Features</p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">Why Choose Hire Nest?</h2>
+              <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">Why Choose CareerNest?</h2>
               <p className="mt-3 text-sm leading-6 text-slate-500">Everything ambitious students and fresh graduates need to launch a rewarding career.</p>
             </div>
             <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -266,7 +266,7 @@ const Home = () => {
             <div className="grid gap-10 lg:grid-cols-[.85fr_1.15fr] lg:items-center">
               <div>
                 <p className="text-xs font-bold uppercase tracking-widest text-violet-700">Simple &amp; Transparent</p>
-                <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">How Hire Nest Works</h2>
+                <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">How CareerNest Works</h2>
                 <p className="mt-4 max-w-md text-sm leading-6 text-slate-500">A clear three-step pathway from college student to hired professional.</p>
                 <Link to="/signup" className="mt-6 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-6 py-3.5 text-sm font-semibold text-white shadow-md transition hover:bg-violet-800 hover:shadow-lg">
                   Create Your Profile <ArrowRight size={17} />
@@ -297,7 +297,7 @@ const Home = () => {
               </div>
               <h2 className="mt-4 text-3xl font-bold tracking-tight sm:text-4xl">Your Career Journey Starts Here!</h2>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-200">
-                Join Hire Nest today and discover opportunities that match your skills and ambitions.
+                Join CareerNest today and discover opportunities that match your skills and ambitions.
               </p>
             </div>
             <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row">

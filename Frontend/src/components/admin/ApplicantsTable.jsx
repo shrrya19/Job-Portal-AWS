@@ -237,7 +237,8 @@ const ApplicantsTable = () => {
   const saveInterview = async (item) => {
     const payload = interviewPayload(item);
     if (!payload) return;
-    const updated = await updateApplication(item, payload, "Interview details saved.");
+    payload.status = "interview scheduled";
+    const updated = await updateApplication(item, payload, "Interview scheduled and details saved.");
     if (updated) setDetailsByApplication((current) => ({ ...current, [item._id]: {} }));
   };
 

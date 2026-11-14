@@ -72,11 +72,11 @@ function Navbar() {
             </div> */}
 
             <div className="h-12 w-12 shrink-0">
-              <img src={Logo} alt="Hire Nest" className="h-full w-full object-contain" />
+              <img src={Logo} alt="CareerNest" className="h-full w-full object-contain" />
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight text-[#172554] sm:text-3xl">
-              Hire <span className="text-violet-700">Nest</span>
+              Career<span className="text-violet-700">Nest</span>
             </h1>
           </Link>
 
@@ -102,7 +102,7 @@ function Navbar() {
                   <li><Link to="/jobs" className="transition hover:text-violet-700">Find Jobs</Link></li>
                   <li><a href="#top-hiring-companies" className="transition hover:text-violet-700">Companies</a></li>
                   <li><Link to="/internships" className="transition hover:text-violet-700">Internships</Link></li>
-                  <li><a href="#why-hire-nest" className="transition hover:text-violet-700">About Us</a></li>
+                  <li><a href="#why-careernest" className="transition hover:text-violet-700">About Us</a></li>
                   <li><a href="#footer" className="transition hover:text-violet-700">Contact Us</a></li>
                 </>
               ) : user && user.role === "recruiter" ? (
@@ -284,7 +284,7 @@ function Navbar() {
 
                         <p className="text-sm text-gray-500">
                           {user?.profile?.bio ||
-                            "Welcome to Hire Nest"}
+                            "Welcome to CareerNest"}
                         </p>
                       </div>
                     </div>
@@ -376,7 +376,7 @@ function Navbar() {
               <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/jobs">Find Jobs</Link>
               <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#top-hiring-companies">Companies</a>
               <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/internships">Internships</Link>
-              <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#why-hire-nest">About Us</a>
+              <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#why-careernest">About Us</a>
               <a onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" href="#footer">Contact Us</a>
             </>
           ) : user?.role === "recruiter" ? (

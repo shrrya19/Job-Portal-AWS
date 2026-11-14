@@ -42,9 +42,16 @@ const statusClass = {
   applied: "bg-slate-100 text-slate-700",
   "under review": "bg-blue-50 text-blue-700",
   shortlisted: "bg-amber-50 text-amber-700",
+  interview: "bg-violet-50 text-violet-700",
   "interview scheduled": "bg-violet-50 text-violet-700",
+  "offer issued": "bg-indigo-50 text-indigo-700",
+  "offer extended": "bg-indigo-50 text-indigo-700",
+  "offer accepted": "bg-emerald-50 text-emerald-700",
+  hired: "bg-emerald-50 text-emerald-700",
   selected: "bg-emerald-50 text-emerald-700",
   rejected: "bg-rose-50 text-rose-700",
+  declined: "bg-rose-50 text-rose-700",
+  "offer rejected": "bg-rose-50 text-rose-700",
 };
 
 const RecruiterDashboard = () => {
@@ -434,8 +441,33 @@ const RecruiterDashboard = () => {
                     <ul className="mt-4 divide-y divide-slate-100">
                       {dashboard.upcomingInterviewList.slice(0, 5).map((interview) => (
                         <li key={interview._id} className="py-3">
-                          <p className="font-medium text-slate-800">{interview.applicant?.fullName || "Candidate"}</p>
-                          <p className="mt-1 text-sm text-slate-500">{interview.job?.title || "Role"} · {new Date(interview.stageDetails.interviewDate).toLocaleString()}</p>
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-medium text-slate-800">{interview.applicant?.fullName || "Candidate"}</p>
+                            {interview.stageDetails?.interviewMode && (
+                              <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">
+                                {interview.stageDetails.interviewMode}
+                              </span>
+                            )}
+                          </div>
+                          <p className="mt-1 text-sm text-slate-500">
+                            {interview.job?.title || "Role"} · {interview.stageDetails?.interviewDate ? new Date(interview.stageDetails.interviewDate).toLocaleDateString() : ""}
+                            {interview.stageDetails?.interviewTime ? ` at ${interview.stageDetails.interviewTime}` : ""}
+                          </p>
+                          {interview.stageDetails?.interviewLink && (
+                            <a
+                              href={interview.stageDetails.interviewLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="mt-1 inline-block text-xs font-semibold text-violet-700 hover:underline"
+                            >
+                              Join Meeting Link &rarr;
+                            </a>
+                          )}
+                          {interview.stageDetails?.interviewLocation && (
+                            <p className="mt-1 text-xs text-slate-500">
+                              Venue: {interview.stageDetails.interviewLocation}
+                            </p>
+                          )}
                         </li>
                       ))}
                     </ul>

@@ -61,7 +61,7 @@ CareerNest is a full-stack, enterprise-grade student job portal and career prepa
 ## 1. About the Project
 
 ### Overview and Purpose
-**CareerNest** (also branded as **Hire Nest**) is an integrated career-readiness and employment marketplace built specifically for academic institutions, graduating students, entry-level job seekers, and hiring companies. It transforms the conventional job board experience into an end-to-end recruitment journey: from resume optimization and role-specific mock interview training to verified job applications and real-time hiring pipeline monitoring.
+**CareerNest** is an integrated career-readiness and employment marketplace built specifically for academic institutions, graduating students, entry-level job seekers, and hiring companies. It transforms the conventional job board experience into an end-to-end recruitment journey: from resume optimization and role-specific mock interview training to verified job applications and real-time hiring pipeline monitoring.
 
 ### Core Objectives
 1. **Accelerate Student Employability:** Provide automated, transparent tools that diagnose resume defects against Applicant Tracking Systems (ATS) and deliver realistic technical/behavioral interview practice before students interview with real employers.

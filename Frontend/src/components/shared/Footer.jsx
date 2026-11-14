@@ -15,7 +15,7 @@ const Footer = () => {
                 <BriefcaseBusiness size={20} />
               </span>
               <span className="text-xl font-bold tracking-tight">
-                Hire <span className="text-violet-400">Nest</span>
+                Career<span className="text-violet-400">Nest</span>
               </span>
             </Link>
             <p className="mt-4 max-w-sm text-sm leading-6 text-slate-300">
@@ -26,7 +26,7 @@ const Footer = () => {
                 href={`https://www.linkedin.com/sharing/share-offsite/?url=${shareUrl}`}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Share Hire Nest on LinkedIn"
+                aria-label="Share CareerNest on LinkedIn"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 text-slate-300 transition hover:border-violet-400 hover:bg-violet-600 hover:text-white"
               >
                 <FaLinkedinIn size={14} />
@@ -35,16 +35,16 @@ const Footer = () => {
                 href={`https://www.facebook.com/sharer/sharer.php?u=${shareUrl}`}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Share Hire Nest on Facebook"
+                aria-label="Share CareerNest on Facebook"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 text-slate-300 transition hover:border-violet-400 hover:bg-violet-600 hover:text-white"
               >
                 <FaFacebookF size={14} />
               </a>
               <a
-                href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${encodeURIComponent("Explore career opportunities with Hire Nest")}`}
+                href={`https://twitter.com/intent/tweet?url=${shareUrl}&text=${encodeURIComponent("Explore career opportunities with CareerNest")}`}
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Share Hire Nest on X"
+                aria-label="Share CareerNest on X"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 text-slate-300 transition hover:border-violet-400 hover:bg-violet-600 hover:text-white"
               >
                 <FaXTwitter size={14} />
@@ -53,7 +53,7 @@ const Footer = () => {
                 href="https://instagram.com"
                 target="_blank"
                 rel="noreferrer"
-                aria-label="Hire Nest on Instagram"
+                aria-label="CareerNest on Instagram"
                 className="flex h-9 w-9 items-center justify-center rounded-lg border border-white/15 text-slate-300 transition hover:border-violet-400 hover:bg-violet-600 hover:text-white"
               >
                 <FaInstagram size={14} />
@@ -68,7 +68,7 @@ const Footer = () => {
               <li><Link className="transition hover:text-white hover:underline" to="/jobs">Find Jobs</Link></li>
               <li><a className="transition hover:text-white hover:underline" href="#top-hiring-companies">Companies</a></li>
               <li><Link className="transition hover:text-white hover:underline" to="/internships">Internships</Link></li>
-              <li><a className="transition hover:text-white hover:underline" href="#why-hire-nest">About Us</a></li>
+              <li><a className="transition hover:text-white hover:underline" href="#why-careernest">About Us</a></li>
               <li><a className="transition hover:text-white hover:underline" href="#footer">Contact Us</a></li>
             </ul>
           </div>
@@ -105,7 +105,7 @@ const Footer = () => {
               </li>
               <li className="flex items-center gap-2.5">
                 <Mail size={16} className="shrink-0 text-violet-400" />
-                <a href="mailto:support@hirenest.com" className="transition hover:text-white">support@hirenest.com</a>
+                <a href="mailto:support@careernest.com" className="transition hover:text-white">support@careernest.com</a>
               </li>
               <li className="flex items-center gap-2.5">
                 <Phone size={16} className="shrink-0 text-violet-400" />
@@ -120,7 +120,7 @@ const Footer = () => {
         </div>
 
         <div className="mt-12 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-400 sm:flex-row sm:items-center sm:justify-between">
-          <span>&copy; {new Date().getFullYear()} Hire Nest. All rights reserved.</span>
+          <span>&copy; {new Date().getFullYear()} CareerNest. All rights reserved.</span>
           <div className="flex items-center gap-4">
             <Link to="/privacy" className="transition hover:text-white">Privacy Policy</Link>
             <Link to="/terms" className="transition hover:text-white">Terms of Service</Link>

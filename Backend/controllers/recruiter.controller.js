@@ -19,8 +19,8 @@ export const getRecruiterDashboard = async (req, res) => {
         const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
         const upcomingQuery = {
             job: { $in: jobIds },
-            status: { $in: ["interview", "interview scheduled"] },
-            "stageDetails.interviewDate": { $gte: now }
+            "stageDetails.interviewDate": { $gte: now },
+            status: { $nin: ["rejected", "declined", "offer rejected", "hired", "offer accepted"] }
         };
 
         const [statusCounts, jobCounts, monthlyCounts, recentApplications, upcomingInterviews, upcomingInterviewCount] = await Promise.all([
@@ -46,7 +46,7 @@ export const getRecruiterDashboard = async (req, res) => {
             Application.find(upcomingQuery)
                 .sort({ "stageDetails.interviewDate": 1 })
                 .limit(8)
-                .select("job applicant status stageDetails.interviewDate stageDetails.interviewTime stageDetails.interviewMode")
+                .select("job applicant status stageDetails.interviewDate stageDetails.interviewTime stageDetails.interviewMode stageDetails.interviewLink stageDetails.interviewLocation")
                 .populate("job", "title")
                 .populate("applicant", "fullName email")
                 .lean(),

@@ -350,6 +350,15 @@ export const updateStatus = async (req, res) => {
                 note: note || `Application progressed to ${normalizedStatus}.`,
                 updatedBy: req.id
             });
+        } else if (status === undefined && interviewDate !== undefined && ["applied", "under review", "shortlisted"].includes(normalizeApplicationStatus(application.status))) {
+            application.status = "interview scheduled";
+            if (!Array.isArray(application.stageHistory)) application.stageHistory = [];
+            application.stageHistory.push({
+                stage: "interview scheduled",
+                updatedAt: new Date(),
+                note: note || "Interview scheduled by recruiter.",
+                updatedBy: req.id
+            });
         }
 
         // Update stage details if provided
