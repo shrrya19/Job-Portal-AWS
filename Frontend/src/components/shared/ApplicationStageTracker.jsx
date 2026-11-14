@@ -2,7 +2,6 @@ const stages = [
   "applied",
   "shortlisted",
   "interview scheduled",
-  "interview cleared",
   "offer issued",
   "offer accepted",
 ];
@@ -11,20 +10,22 @@ const labels = {
   applied: "Applied",
   shortlisted: "Shortlisted",
   "interview scheduled": "Interview",
-  "interview cleared": "Interview cleared",
-  "offer issued": "Offer issued",
-  "offer accepted": "Offer accepted",
+  "offer issued": "Offer Extended",
+  "offer accepted": "Hired",
 };
 
 const legacyStatusMap = {
   pending: "applied",
   "under review": "applied",
   interview: "interview scheduled",
+  "interview cleared": "interview scheduled",
   "offer extended": "offer issued",
   selected: "offer issued",
   hired: "offer accepted",
   accepted: "offer accepted",
   declined: "offer rejected",
+  rejected: "offer rejected",
+  "interview not cleared": "offer rejected",
 };
 
 const ApplicationStageTracker = ({ status = "applied", stageHistory = [] }) => {
@@ -33,16 +34,11 @@ const ApplicationStageTracker = ({ status = "applied", stageHistory = [] }) => {
     ? stageHistory[stageHistory.length - 1]
     : null;
 
-  if (["rejected", "interview not cleared", "offer rejected"].includes(normalizedStatus)) {
-    const text = {
-      rejected: "Application rejected",
-      "interview not cleared": "Interview not cleared",
-      "offer rejected": "Offer declined",
-    }[normalizedStatus];
+  if (["rejected", "interview not cleared", "offer rejected", "declined"].includes(normalizedStatus)) {
     return (
       <div>
         <span className="inline-flex rounded-full border border-red-200 bg-red-50 px-3 py-1 text-xs font-semibold text-red-700">
-          {text}
+          Declined
         </span>
         {latestUpdate?.updatedAt && (
           <p className="mt-1 text-xs text-gray-500">
@@ -66,7 +62,7 @@ const ApplicationStageTracker = ({ status = "applied", stageHistory = [] }) => {
           const complete = index <= currentIndex;
           return (
             <div className="flex flex-1 items-start last:flex-none" key={stage}>
-              <div className={`flex ${stage === "interview cleared" ? "w-20" : stage === "offer accepted" ? "w-20" : "w-14"} flex-col items-center`}>
+              <div className={`flex ${stage === "offer issued" || stage === "offer accepted" ? "w-20" : "w-16"} flex-col items-center`}>
                 <span className={`h-3 w-3 rounded-full ring-4 ring-white ${complete ? "bg-violet-600" : "bg-gray-200"}`} />
                 <span className={`mt-2 text-center text-[10px] leading-tight ${complete ? "font-semibold text-violet-700" : "text-gray-400"}`}>
                   {labels[stage]}

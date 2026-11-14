@@ -54,6 +54,12 @@ export const registerCompany = async (req, res) => {
 
   } catch (error) {
     console.error("REGISTER COMPANY ERROR:", error);
+    if (error?.code === 11000) {
+      return res.status(409).json({
+        message: "A company with this name already exists.",
+        success: false
+      });
+    }
     res.status(500).json({
       message: "Server error",
       success: false
@@ -97,11 +103,21 @@ export const getPublicCompanies = async (req, res) => {
     }
 
     const [companyRecords, jobRecords] = await Promise.all([
-      Company.find({ location: { $exists: true, $ne: "" } })
-        .select("name description website location country logo")
+      Company.find({
+        location: { $exists: true, $ne: "" },
+        status: { $in: ["Active", null] }
+      })
+        .select("name description website location country logo industry status")
         .lean(),
-      Job.find({ location: { $exists: true, $ne: "" } })
-        .where({ status: { $in: ["Active", null] } })
+      Job.find({
+        location: { $exists: true, $ne: "" },
+        status: { $in: ["Active", null] },
+        $or: [
+          { applicationDeadline: { $exists: false } },
+          { applicationDeadline: null },
+          { applicationDeadline: { $gt: new Date() } }
+        ]
+      })
         .select("location locations country company")
         .populate("company", "location country")
         .lean()

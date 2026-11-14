@@ -6,8 +6,34 @@ import { APPLICANT_API_ENDPOINT } from "@/utils/constant";
 import { useParams } from "react-router-dom";
 import { setAllApplication } from "@/redux/applicationSlice";
 import { useDispatch, useSelector } from "react-redux";
-import { Users } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  CheckCircle2,
+  Clock3,
+  Users,
+  UserRoundCheck,
+  XCircle,
+} from "lucide-react";
 import { motion } from "framer-motion";
+
+const summaryStages = [
+  { key: "all", label: "Total applicants", icon: Users, tone: "violet" },
+  { key: "applied", label: "Applied", icon: BriefcaseBusiness, tone: "blue" },
+  { key: "shortlisted", label: "Shortlisted", icon: UserRoundCheck, tone: "amber" },
+  { key: "interview scheduled", label: "Interview scheduled", icon: Clock3, tone: "purple" },
+  { key: "selected", label: "Selected", icon: CheckCircle2, tone: "green" },
+  { key: "rejected", label: "Rejected", icon: XCircle, tone: "rose" },
+];
+
+const summaryStage = (status) => {
+  const stage = String(status || "applied").trim().toLowerCase();
+  if (["pending"].includes(stage)) return "applied";
+  if (["interview"].includes(stage)) return "interview scheduled";
+  if (["hired", "offer issued", "offer extended", "offer accepted", "selected"].includes(stage)) return "selected";
+  if (["declined", "offer rejected", "interview not cleared", "rejected"].includes(stage)) return "rejected";
+  if (["interview cleared"].includes(stage)) return "selected";
+  return stage;
+};
 
 const Applicants = () => {
   const params = useParams();
@@ -16,6 +42,12 @@ const Applicants = () => {
   const { applicants } = useSelector(
     (store) => store.application
   );
+  const applications = applicants?.applications || [];
+  const stageCounts = applications.reduce((counts, application) => {
+    const stage = summaryStage(application.status);
+    counts[stage] = (counts[stage] || 0) + 1;
+    return counts;
+  }, {});
 
   useEffect(() => {
     let active = true;
@@ -46,56 +78,54 @@ const Applicants = () => {
     <>
       <Navbar />
 
-      <div className="min-h-screen bg-gradient-to-b from-purple-50 via-white to-white">
-
-        <div className="max-w-7xl mx-auto px-4 py-8">
-
-          {/* Hero Section */}
-
-          <motion.div
-            initial={{ opacity: 0, y: -25 }}
+      <div className="min-h-screen bg-slate-50/70">
+        <main className="mx-auto max-w-[1440px] px-4 py-6 sm:px-6 lg:px-8 lg:py-9">
+          <motion.section
+            initial={{ opacity: 0, y: -12 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white rounded-3xl shadow-xl border border-purple-100 p-8 mb-8"
+            className="mb-6 flex flex-col gap-5 rounded-2xl border border-violet-100 bg-white p-5 shadow-sm sm:p-7 lg:flex-row lg:items-end lg:justify-between"
           >
-            <div className="flex flex-col md:flex-row justify-between items-center gap-6">
-
-              <div>
-                <span className="bg-purple-100 text-[#6A38C2] px-4 py-2 rounded-full text-sm font-medium">
-                  Recruiter Dashboard
-                </span>
-
-                <h1 className="text-4xl font-bold mt-4">
-                  Job Applicants
-                </h1>
-
-                <p className="text-gray-500 mt-2">
-                  Review and manage all candidates.
-                </p>
-              </div>
-
-              <div className="bg-purple-50 border border-purple-100 rounded-2xl px-8 py-5 text-center">
-
-                <Users
-                  size={30}
-                  className="mx-auto text-[#6A38C2]"
-                />
-
-                <h2 className="text-3xl font-bold mt-2">
-                  {applicants?.applications?.length || 0}
-                </h2>
-
-                <p className="text-gray-500 text-sm">
-                  Total Applicants
-                </p>
-
-              </div>
-
+            <div>
+              <p className="mb-2 text-sm font-semibold text-violet-700">Recruiter workspace</p>
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900 sm:text-4xl">
+                Job Applicants
+              </h1>
+              <p className="mt-2 text-sm text-slate-500 sm:text-base">
+                Review candidates and keep every hiring decision moving.
+              </p>
             </div>
-          </motion.div>
+            <div className="flex items-center gap-3 rounded-xl bg-violet-50 px-4 py-3 text-violet-800">
+              <Users className="h-5 w-5" />
+              <span className="text-sm font-medium">Applications for this job</span>
+            </div>
+          </motion.section>
+
+          <section aria-label="Applicant summary" className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-6">
+            {summaryStages.map(({ key, label, icon: Icon, tone }) => {
+              const tones = {
+                violet: "bg-violet-50 text-violet-700",
+                blue: "bg-blue-50 text-blue-700",
+                amber: "bg-amber-50 text-amber-700",
+                purple: "bg-purple-50 text-purple-700",
+                green: "bg-emerald-50 text-emerald-700",
+                rose: "bg-rose-50 text-rose-700",
+              };
+              return (
+                <div key={key} className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md sm:p-5">
+                  <div className={`mb-4 flex h-9 w-9 items-center justify-center rounded-lg ${tones[tone]}`}>
+                    <Icon className="h-[18px] w-[18px]" />
+                  </div>
+                  <p className="text-2xl font-bold tracking-tight text-slate-900">
+                    {key === "all" ? applications.length : stageCounts[key] || 0}
+                  </p>
+                  <p className="mt-1 text-xs font-medium text-slate-500 sm:text-sm">{label}</p>
+                </div>
+              );
+            })}
+          </section>
 
           <ApplicantsTable />
-
-        </div>
+        </main>
       </div>
     </>
   );

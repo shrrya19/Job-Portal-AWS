@@ -1,23 +1,53 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Navbar from "./shared/Navbar";
 import FilterCard from "./FilterCard";
 import Job from "./Job";
 import { useSelector } from "react-redux";
 import { motion } from "framer-motion";
+import { Loader2 } from "lucide-react";
 import useGetAllJobs from "@/hooks/useGetAllJobs";
 import { useSearchParams } from "react-router-dom";
 
 const Jobs = ({ internshipsOnly = false }) => {
   useGetAllJobs({ includeSearchedQuery: false });
-  const { allJobs } = useSelector((store) => store.job);
+  const { allJobs, jobsLoading } = useSelector((store) => store.job);
   const [searchParams, setSearchParams] = useSearchParams();
-  const [filters, setFilters] = useState({ role: "", salary: "" });
-  const locationFilter = searchParams.get("location") || "All India";
-  const availableJobs = allJobs || [];
-  const jobsByType = availableJobs.filter((job) => {
-    return !internshipsOnly || job.jobType?.toLowerCase() === "internship";
+  const [filters, setFilters] = useState({
+    role: "",
+    salary: "",
+    industry: "",
+    jobType: "",
+    workMode: "",
+    experience: searchParams.get("experience") || "",
   });
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const locationFilter = searchParams.get("location") || "All India";
+  const availableJobs = useMemo(() => allJobs || [], [allJobs]);
+  const jobsByType = availableJobs.filter((job) => {
+    const isInternship = job.jobType?.toLowerCase() === "internship";
+    return internshipsOnly ? isInternship : !isInternship;
+  });
+  const industries = useMemo(() => [...new Set(
+    availableJobs.map((job) => job.company?.industry).filter(Boolean)
+  )].sort((first, second) => first.localeCompare(second)), [availableJobs]);
   const filterJobs = jobsByType.filter((job) => {
+    const searchTerm = search.trim().toLowerCase();
+    if (searchTerm && ![job.title, job.company?.name].some((value) => value?.toLowerCase().includes(searchTerm))) {
+      return false;
+    }
+
+    if (filters.industry && job.company?.industry !== filters.industry) return false;
+    if (filters.jobType && job.jobType !== filters.jobType) return false;
+    if (filters.workMode && job.workMode !== filters.workMode) return false;
+    if (filters.experience) {
+      const [minimumText, maximumText] = filters.experience.split("-");
+      const minimum = Number(minimumText.replace("+", ""));
+      const maximum = maximumText ? Number(maximumText) : Number.POSITIVE_INFINITY;
+      const experience = Number(job.experienceLevel ?? 0);
+      if (experience < minimum || experience > maximum) return false;
+    }
+
     if (filters.role) {
       const searchableText = [
         job.title,
@@ -37,31 +67,37 @@ const Jobs = ({ internshipsOnly = false }) => {
     }
 
     if (filters.salary) {
-      const salary = Number(job.salary);
+      const salaryMin = Number(job.salaryMin ?? job.salary);
+      const salaryMax = Number(job.salaryMax ?? job.salary);
       const [minimumText, maximumText] = filters.salary.split("-");
       const minimum = Number(minimumText.replace("+", ""));
       const maximum = maximumText ? Number(maximumText) : Number.POSITIVE_INFINITY;
-      if (!Number.isFinite(salary) || salary < minimum) return false;
-      if (Number.isFinite(maximum) && (minimum === 0 ? salary > maximum : salary <= minimum || salary > maximum)) {
-        return false;
-      }
+      if (!Number.isFinite(salaryMin) || !Number.isFinite(salaryMax) ||
+        salaryMin > maximum || salaryMax < minimum) return false;
     }
 
     return true;
   });
+  const pageSize = 12;
+  const pageCount = Math.max(1, Math.ceil(filterJobs.length / pageSize));
+  const currentPage = Math.min(page, pageCount);
+  const pageJobs = filterJobs.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const changeFilter = (filterKey, value) => {
     if (filterKey === "all") {
-      setFilters({ role: "", salary: "" });
+      setPage(1);
+      setFilters({ role: "", salary: "", industry: "", jobType: "", workMode: "", experience: "" });
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         next.delete("location");
+        next.delete("experience");
         return next;
       });
       return;
     }
 
     if (filterKey === "location") {
+      setPage(1);
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
         if (!value || value.toLowerCase() === "all india") next.delete("location");
@@ -71,6 +107,7 @@ const Jobs = ({ internshipsOnly = false }) => {
       return;
     }
 
+    setPage(1);
     setFilters((currentFilters) => ({ ...currentFilters, [filterKey]: value }));
   };
 
@@ -118,11 +155,30 @@ const Jobs = ({ internshipsOnly = false }) => {
                   key={locationFilter}
                   filters={{ ...filters, location: locationFilter }}
                   onFilterChange={changeFilter}
+                  industries={industries}
                 />
               </div>
             </div>
             <div className="flex-1">
-              {filterJobs.length <= 0 ? (
+              <label className="relative mb-5 block">
+                <span className="sr-only">Search jobs or companies</span>
+                <input
+                  type="search"
+                  value={search}
+                  onChange={(event) => {
+                    setSearch(event.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search by job title or company"
+                  className="h-11 w-full rounded-xl border border-slate-200 bg-white px-4 text-sm outline-none transition focus:border-violet-500 focus:ring-2 focus:ring-violet-100"
+                />
+              </label>
+              {jobsLoading && filterJobs.length === 0 ? (
+                <div className="rounded-3xl border border-slate-200 bg-white p-12 text-center">
+                  <Loader2 className="mx-auto h-8 w-8 animate-spin text-violet-700" />
+                  <p className="mt-3 text-sm text-slate-500">Loading active opportunities...</p>
+                </div>
+              ) : filterJobs.length <= 0 ? (
                 <div className="bg-white rounded-3xl shadow-lg border p-16 text-center">
                   <h2 className="text-3xl font-bold text-gray-700">
                     {locationFilter !== "All India"
@@ -137,11 +193,17 @@ const Jobs = ({ internshipsOnly = false }) => {
                 </div>
               ) : (
                 <>
-                  <h2 className="text-3xl font-bold mb-6">
-                    {internshipsOnly ? "Latest Internships" : "Latest Jobs"}
-                  </h2>
+                  <div className="mb-6 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                    <div>
+                      <h2 className="text-2xl font-bold text-slate-900">
+                        {internshipsOnly ? "Latest Internships" : "Latest Jobs"}
+                      </h2>
+                      <p className="mt-1 text-sm text-slate-500">{filterJobs.length} matching opportunities</p>
+                    </div>
+                    {pageCount > 1 && <p className="text-sm text-slate-500">Page {currentPage} of {pageCount}</p>}
+                  </div>
                   <div className="grid xl:grid-cols-3 md:grid-cols-2 gap-6">
-                    {filterJobs.map((job, index) => (
+                    {pageJobs.map((job, index) => (
                       <motion.div
                         key={job?._id}
                         initial={{ opacity: 0, y: 30 }}
@@ -154,6 +216,27 @@ const Jobs = ({ internshipsOnly = false }) => {
                       </motion.div>
                     ))}
                   </div>
+                  {pageCount > 1 && (
+                    <nav aria-label="Job listing pages" className="mt-8 flex items-center justify-center gap-3">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => setPage((current) => Math.max(1, current - 1))}
+                        className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <span className="text-sm text-slate-600">{currentPage} / {pageCount}</span>
+                      <button
+                        type="button"
+                        disabled={currentPage === pageCount}
+                        onClick={() => setPage((current) => Math.min(pageCount, current + 1))}
+                        className="rounded-lg border border-slate-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        Next
+                      </button>
+                    </nav>
+                  )}
                 </>
               )}
             </div>

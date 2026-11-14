@@ -141,7 +141,9 @@ const JobDescription = () => {
                   </Badge>
 
                   <Badge className="bg-green-100 text-green-700">
-                    {singleJob?.salary} LPA
+                    {singleJob?.salaryMin !== undefined && singleJob?.salaryMax !== undefined
+                      ? `₹${singleJob.salaryMin}-${singleJob.salaryMax} ${singleJob.salaryUnit || "LPA"}`
+                      : `${singleJob?.salary} ${singleJob?.salaryUnit || "LPA"}`}
                   </Badge>
 
                 </div>
@@ -216,7 +218,9 @@ const JobDescription = () => {
                   Salary
                 </h3>
                 <p className="mt-2 text-lg font-bold">
-                  {singleJob?.salary} LPA
+                  {singleJob?.salaryMin !== undefined && singleJob?.salaryMax !== undefined
+                    ? `₹${singleJob.salaryMin}-${singleJob.salaryMax} ${singleJob.salaryUnit || "LPA"}`
+                    : `${singleJob?.salary} ${singleJob?.salaryUnit || "LPA"}`}
                 </p>
               </motion.div>
 
@@ -292,8 +296,20 @@ const JobDescription = () => {
                     <span className="font-semibold">
                       Salary :
                     </span>{" "}
-                    {singleJob?.salary} LPA
+                    {singleJob?.salaryMin !== undefined && singleJob?.salaryMax !== undefined
+                      ? `₹${singleJob.salaryMin}-${singleJob.salaryMax} ${singleJob.salaryUnit || "LPA"}`
+                      : `${singleJob?.salary} ${singleJob?.salaryUnit || "LPA"}`}
                   </p>
+                  <p>
+                    <span className="font-semibold">Work Mode :</span>{" "}
+                    {singleJob?.workMode || "On-site"}
+                  </p>
+                  {singleJob?.qualification && (
+                    <p>
+                      <span className="font-semibold">Qualification :</span>{" "}
+                      {singleJob.qualification}
+                    </p>
+                  )}
 
                 </div>
 
@@ -327,8 +343,25 @@ const JobDescription = () => {
                     </span>{" "}
                     {singleJob?.createdAt?.split("T")[0]}
                   </p>
+                  {singleJob?.applicationDeadline && (
+                    <p>
+                      <span className="font-semibold">Apply By :</span>{" "}
+                      {new Date(singleJob.applicationDeadline).toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" })}
+                    </p>
+                  )}
 
                 </div>
+
+                {singleJob?.responsibilities?.length > 0 && (
+                  <section className="mt-8 rounded-2xl border border-purple-100 bg-white p-6 shadow-sm">
+                    <h2 className="mb-4 text-xl font-bold">Responsibilities</h2>
+                    <ul className="list-disc space-y-2 pl-5 text-gray-700">
+                      {singleJob.responsibilities.map((responsibility, index) => (
+                        <li key={`${index}-${responsibility}`}>{responsibility}</li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
 
               </div>
 

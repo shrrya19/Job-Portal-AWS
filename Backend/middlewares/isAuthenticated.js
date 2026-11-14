@@ -40,10 +40,17 @@ const isAuthenticated = async (req, res, next) => {
     }
 
     try {
-        const user = await User.findById(decoded.userId).select("role");
+        const user = await User.findById(decoded.userId).select("role accountStatus");
         if (!user) {
             return res.status(401).json({
                 message: "User not authenticated",
+                success: false
+            });
+        }
+
+        if (user.accountStatus === "Inactive") {
+            return res.status(403).json({
+                message: "This account is inactive. Contact support for assistance.",
                 success: false
             });
         }

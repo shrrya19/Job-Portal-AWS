@@ -34,8 +34,13 @@ const jobSchema = new mongoose.Schema(
 
     status: {
       type: String,
-      enum: ["Active", "Inactive"],
+      enum: ["Active", "Inactive", "Expired"],
       default: "Active",
+    },
+    isDemoData: {
+      type: Boolean,
+      default: false,
+      select: false,
     },
 
     description: {
@@ -49,11 +54,41 @@ const jobSchema = new mongoose.Schema(
         required: true,
       },
     ],
+    responsibilities: {
+      type: [String],
+      default: [],
+    },
+    qualification: {
+      type: String,
+      trim: true,
+      default: "",
+    },
+    workMode: {
+      type: String,
+      enum: ["Remote", "Hybrid", "On-site"],
+      default: "On-site",
+    },
+    applicationDeadline: {
+      type: Date,
+    },
 
     salary: {
       type: Number,
       required: true,
       min: 0,
+    },
+    salaryMin: {
+      type: Number,
+      min: 0,
+    },
+    salaryMax: {
+      type: Number,
+      min: 0,
+    },
+    salaryUnit: {
+      type: String,
+      trim: true,
+      default: "LPA",
     },
 
     experienceLevel: {

@@ -49,7 +49,13 @@ const applicationSchema = new mongoose.Schema({
         interviewDate: { type: Date },
         interviewTime: { type: String, default: "" },
         interviewMode: { type: String, default: "" },
+        interviewLink: { type: String, default: "" },
+        interviewLocation: { type: String, default: "" },
+        interviewContact: { type: String, default: "" },
         offerSalary: { type: String, default: "" },
+        offerAmount: { type: Number },
+        offerCurrency: { type: String, default: "" },
+        offerPeriod: { type: String, default: "" },
         offerRespondedAt: { type: Date },
         note: { type: String, default: "" }
     }

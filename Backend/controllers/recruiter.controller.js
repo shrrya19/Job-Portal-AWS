@@ -10,7 +10,7 @@ const monthKey = (date) => `${date.getUTCFullYear()}-${String(date.getUTCMonth()
 export const getRecruiterDashboard = async (req, res) => {
     try {
         const jobs = await Job.find({ created_by: req.id })
-            .select("title status createdAt company")
+            .select("title status createdAt applicationDeadline company")
             .populate("company", "name")
             .sort({ createdAt: -1 })
             .lean();
@@ -69,7 +69,15 @@ export const getRecruiterDashboard = async (req, res) => {
             success: true,
             metrics: {
                 totalJobs: jobs.length,
-                activeJobs: jobs.filter((job) => job.status !== "Inactive").length,
+                activeJobs: jobs.filter((job) =>
+                    job.status !== "Inactive" &&
+                    job.status !== "Expired" &&
+                    (!job.applicationDeadline || job.applicationDeadline > now)
+                ).length,
+                inactiveJobs: jobs.filter((job) => job.status === "Inactive").length,
+                expiredJobs: jobs.filter((job) =>
+                    job.status === "Expired" || (job.applicationDeadline && job.applicationDeadline <= now)
+                ).length,
                 totalApplications,
                 shortlistedCandidates: byStatus.get("shortlisted") || 0,
                 rejectedCandidates: byStatus.get("rejected") || 0,
@@ -235,5 +243,123 @@ export const rankJobCandidates = async (req, res) => {
     } catch (error) {
         console.error("Candidate ranking failed:", error);
         return res.status(500).json({ message: "Unable to rank candidates for this job.", success: false });
+    }
+};
+
+/**
+ * Recruiter Search API
+ * Allows recruiters to search their own jobs, job ID, or applicants.
+ * Enforces strict security: only jobs and applicants belonging to the authenticated recruiter.
+ */
+export const searchRecruiterRecords = async (req, res) => {
+    try {
+        const recruiterId = req.id;
+        const searchRaw = String(req.query.query || req.query.q || "").trim();
+        const statusFilter = String(req.query.status || "all").trim();
+        const page = Math.max(1, parseInt(req.query.page) || 1);
+        const limit = Math.min(50, Math.max(1, parseInt(req.query.limit) || 10));
+
+        // Security check: Only find jobs created by this authenticated recruiter
+        const recruiterJobs = await Job.find({ created_by: recruiterId })
+            .populate("company", "name logo location")
+            .sort({ createdAt: -1 })
+            .lean();
+
+        const myJobIds = recruiterJobs.map((j) => j._id);
+
+        let matchingJobs = [];
+        let matchingApplicants = [];
+
+        const isObjectId = mongoose.Types.ObjectId.isValid(searchRaw);
+
+        if (searchRaw) {
+            const escaped = searchRaw.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+            const regex = new RegExp(escaped, "i");
+
+            // Match recruiter's own jobs
+            matchingJobs = recruiterJobs.filter((job) => {
+                const matchesText =
+                    regex.test(job.title || "") ||
+                    regex.test(job.jobId || "") ||
+                    regex.test(job.location || "") ||
+                    regex.test((job.locations || []).join(" ")) ||
+                    regex.test(job.jobType || "") ||
+                    regex.test(job.company?.name || "") ||
+                    regex.test(job.status || "") ||
+                    (isObjectId && String(job._id) === searchRaw);
+
+                const matchesStatus =
+                    statusFilter === "all" ||
+                    (job.status || "Active").toLowerCase() === statusFilter.toLowerCase();
+
+                return matchesText && matchesStatus;
+            });
+
+            // Match applications belonging to this recruiter's jobs only!
+            const applications = await Application.find({ job: { $in: myJobIds } })
+                .populate("job", "title jobId company status createdAt")
+                .populate("applicant", "fullName email phoneNumber profile.resume profile.resumeOriginalName")
+                .sort({ createdAt: -1 })
+                .lean();
+
+            matchingApplicants = applications.filter((app) => {
+                const matchesApp =
+                    regex.test(app.applicant?.fullName || "") ||
+                    regex.test(app.applicant?.email || "") ||
+                    regex.test(app.applicant?.phoneNumber || "") ||
+                    regex.test(app.status || "") ||
+                    regex.test(app.job?.title || "") ||
+                    regex.test(app.job?.jobId || "") ||
+                    (isObjectId && (String(app._id) === searchRaw || String(app.applicant?._id) === searchRaw));
+
+                return matchesApp;
+            });
+        } else {
+            // When query is empty, return recruiter's jobs matching statusFilter
+            matchingJobs = recruiterJobs.filter((job) =>
+                statusFilter === "all" ||
+                (job.status || "Active").toLowerCase() === statusFilter.toLowerCase()
+            );
+
+            matchingApplicants = await Application.find({ job: { $in: myJobIds } })
+                .populate("job", "title jobId company status createdAt")
+                .populate("applicant", "fullName email phoneNumber profile.resume profile.resumeOriginalName")
+                .sort({ createdAt: -1 })
+                .limit(10)
+                .lean();
+        }
+
+        // Count total applications per job
+        const jobAppCounts = await Application.aggregate([
+            { $match: { job: { $in: myJobIds } } },
+            { $group: { _id: "$job", count: { $sum: 1 } } }
+        ]);
+        const appCountMap = new Map(jobAppCounts.map((c) => [String(c._id), c.count]));
+
+        const enrichedJobs = matchingJobs.map((job) => ({
+            ...job,
+            applicationCount: appCountMap.get(String(job._id)) || 0
+        }));
+
+        const totalJobs = enrichedJobs.length;
+        const totalApplicants = matchingApplicants.length;
+        const paginatedJobs = enrichedJobs.slice((page - 1) * limit, page * limit);
+        const paginatedApplicants = matchingApplicants.slice((page - 1) * limit, page * limit);
+
+        return res.status(200).json({
+            success: true,
+            jobs: paginatedJobs,
+            applicants: paginatedApplicants,
+            totalJobs,
+            totalApplicants,
+            page,
+            totalPages: Math.ceil(Math.max(totalJobs, totalApplicants) / limit) || 1
+        });
+    } catch (error) {
+        console.error("Recruiter search failed:", error);
+        return res.status(500).json({
+            message: "Unable to complete recruiter search.",
+            success: false
+        });
     }
 };

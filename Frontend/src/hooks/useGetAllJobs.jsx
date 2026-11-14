@@ -1,4 +1,4 @@
-import { setAllJobs } from '@/redux/jobSlice'
+import { setAllJobs, setJobsLoading } from '@/redux/jobSlice'
 import { JOB_API_ENDPOINT } from '@/utils/constant'
 import axios from 'axios'
 import { useEffect } from 'react'
@@ -17,6 +17,7 @@ const useGetAllJobs = ({ includeSearchedQuery = true } = {}) => {
         const controller = new AbortController()
 
         const fetchAllJobs = async () => {
+            dispatch(setJobsLoading(true))
             try {
                 const res = await axios.get(`${JOB_API_ENDPOINT}/get`, {
                     params: { keyword, location, experience },
@@ -29,6 +30,8 @@ const useGetAllJobs = ({ includeSearchedQuery = true } = {}) => {
                 if (!controller.signal.aborted) {
                     console.error("Job search request failed:", error)
                 }
+            } finally {
+                if (!controller.signal.aborted) dispatch(setJobsLoading(false))
             }
         }
 

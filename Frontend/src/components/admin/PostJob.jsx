@@ -27,12 +27,18 @@ const initialInput = {
   description: "",
   requirements: "",
   salary: "",
+  salaryMin: "",
+  salaryMax: "",
   locations: [],
   country: "India",
   jobType: "Full-Time",
+  workMode: "On-site",
   experience: "",
   position: "1",
   companyId: "",
+  responsibilities: "",
+  qualification: "",
+  applicationDeadline: "",
 };
 
 const PostJob = () => {
@@ -67,14 +73,20 @@ const PostJob = () => {
             ? job.requirements.join(", ")
             : "",
           salary: String(job.salary ?? ""),
+          salaryMin: String(job.salaryMin ?? ""),
+          salaryMax: String(job.salaryMax ?? ""),
           locations: Array.isArray(job.locations) && job.locations.length
             ? job.locations
             : job.location ? [job.location] : [],
           country: "India",
           jobType: job.jobType === "Full Time" ? "Full-Time" : job.jobType || "Full-Time",
+          workMode: job.workMode || "On-site",
           experience: String(job.experienceLevel ?? ""),
           position: String(job.position ?? 1),
           companyId: job.company?._id || job.company || "",
+          responsibilities: Array.isArray(job.responsibilities) ? job.responsibilities.join("\n") : "",
+          qualification: job.qualification || "",
+          applicationDeadline: job.applicationDeadline ? new Date(job.applicationDeadline).toISOString().slice(0, 10) : "",
         });
       } catch (error) {
         toast.error(error?.response?.data?.message || error.message || "Unable to load this job.");
@@ -148,6 +160,9 @@ const PostJob = () => {
       const payload = {
         ...input,
         location: input.locations[0],
+        applicationDeadline: input.applicationDeadline
+          ? new Date(`${input.applicationDeadline}T23:59:59.999Z`).toISOString()
+          : "",
       };
       const res = id
         ? await axios.put(endpoint, payload, requestConfig)
@@ -271,6 +286,22 @@ const PostJob = () => {
                   <Label htmlFor="salary">Salary (LPA)</Label>
                   <Input id="salary" name="salary" type="number" min="0" required value={input.salary} onChange={changeEventHandler} placeholder="12" className="mt-2 h-12 rounded-xl" />
                 </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="text-sm font-medium">
+                    Minimum salary (LPA)
+                    <Input name="salaryMin" type="number" min="0" value={input.salaryMin} onChange={changeEventHandler} placeholder="Optional" className="mt-2 h-12 rounded-xl" />
+                  </label>
+                  <label className="text-sm font-medium">
+                    Maximum salary (LPA)
+                    <Input name="salaryMax" type="number" min="0" value={input.salaryMax} onChange={changeEventHandler} placeholder="Optional" className="mt-2 h-12 rounded-xl" />
+                  </label>
+                </div>
+                <div>
+                  <Label htmlFor="workMode">Work Mode</Label>
+                  <select id="workMode" name="workMode" value={input.workMode} onChange={changeEventHandler} className="mt-2 h-12 w-full rounded-xl border border-input bg-white px-3 text-sm">
+                    {["On-site", "Hybrid", "Remote"].map((mode) => <option key={mode} value={mode}>{mode}</option>)}
+                  </select>
+                </div>
                 <div>
                   <Label>Job Type</Label>
                   <Select value={input.jobType} onValueChange={(jobType) => {
@@ -296,6 +327,18 @@ const PostJob = () => {
                 <div>
                   <Label htmlFor="position">Number of Positions</Label>
                   <Input id="position" name="position" type="number" min="1" required value={input.position} onChange={changeEventHandler} className="mt-2 h-12 rounded-xl" />
+                </div>
+                <div>
+                  <Label htmlFor="qualification">Qualification</Label>
+                  <Input id="qualification" name="qualification" maxLength={200} value={input.qualification} onChange={changeEventHandler} placeholder="Degree or equivalent experience" className="mt-2 h-12 rounded-xl" />
+                </div>
+                <div>
+                  <Label htmlFor="applicationDeadline">Application Deadline</Label>
+                  <Input id="applicationDeadline" name="applicationDeadline" type="date" min={new Date().toISOString().slice(0, 10)} value={input.applicationDeadline} onChange={changeEventHandler} className="mt-2 h-12 rounded-xl" />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="responsibilities">Responsibilities</Label>
+                  <textarea id="responsibilities" name="responsibilities" value={input.responsibilities} onChange={changeEventHandler} placeholder="List one responsibility per line." className="mt-2 min-h-24 w-full rounded-xl border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" />
                 </div>
               </div>
 

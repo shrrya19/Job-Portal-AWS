@@ -43,6 +43,20 @@ const canonicalizeJobLocations = (locations, fallbackLocation) => {
     if (canonicalLocations.includes("Remote") && canonicalLocations.length > 1) return null;
     return canonicalLocations;
 };
+const findDuplicateJobPosting = ({ company, title, location, experience, excludeId }) => {
+    const normalizedTitle = normalizeIdentityValue(title);
+    const query = {
+        company,
+        $or: [
+            { titleNormalized: normalizedTitle },
+            { title: { $regex: `^${escapeRegex(title.trim().replace(/\s+/g, " "))}$`, $options: "i" } }
+        ],
+        location,
+        experienceLevel: experience,
+        ...(excludeId ? { _id: { $ne: excludeId } } : {})
+    };
+    return Job.exists(query);
+};
 
 // Here you see posted jobs by Admin
 export const postJob = async (req, res) => {
@@ -59,7 +73,14 @@ export const postJob = async (req, res) => {
             jobId,
             position,
             companyId,
-            country
+            country,
+            responsibilities,
+            qualification,
+            workMode,
+            salaryMin,
+            salaryMax,
+            salaryUnit,
+            applicationDeadline
         } = req.body;
 
         const userId = req.id;
@@ -71,6 +92,12 @@ export const postJob = async (req, res) => {
         const parsedSalary = Number(salary);
         const parsedExperience = Number(experience);
         const parsedPosition = Number(position);
+        const parsedSalaryMin = salaryMin === undefined || salaryMin === "" ? parsedSalary : Number(salaryMin);
+        const parsedSalaryMax = salaryMax === undefined || salaryMax === "" ? parsedSalary : Number(salaryMax);
+        const parsedDeadline = applicationDeadline ? new Date(applicationDeadline) : null;
+        const responsibilityList = Array.isArray(responsibilities)
+            ? responsibilities
+            : String(responsibilities || "").split(/\r?\n/);
         const normalizedJobType = typeof jobType === "string" && jobType.trim() === "Full Time"
             ? "Full-Time"
             : typeof jobType === "string"
@@ -88,11 +115,19 @@ export const postJob = async (req, res) => {
             !jobTypes.includes(normalizedJobType) ||
             !Number.isFinite(parsedSalary) ||
             parsedSalary < 0 ||
+            !Number.isFinite(parsedSalaryMin) ||
+            !Number.isFinite(parsedSalaryMax) ||
+            parsedSalaryMin < 0 ||
+            parsedSalaryMax < parsedSalaryMin ||
             !Number.isFinite(parsedExperience) ||
             parsedExperience < 0 ||
             !Number.isInteger(parsedPosition) ||
             parsedPosition < 1 ||
             !companyId
+            || (workMode !== undefined && !["Remote", "Hybrid", "On-site"].includes(workMode))
+            || (applicationDeadline && Number.isNaN(parsedDeadline.getTime()))
+            || (qualification !== undefined && (typeof qualification !== "string" || qualification.length > 200))
+            || (typeof salaryUnit === "string" && salaryUnit.length > 30)
         ) {
             return res.status(400).json({
                 message: "Provide valid values for every required job field. Job ID must be 3-50 letters, numbers, hyphens, or underscores.",
@@ -132,6 +167,18 @@ export const postJob = async (req, res) => {
                 success: false
             });
         }
+        const duplicatePosting = await findDuplicateJobPosting({
+            company: companyId,
+            title,
+            location: canonicalLocations[0],
+            experience: parsedExperience
+        });
+        if (duplicatePosting) {
+            return res.status(409).json({
+                message: "A job with this company, title, location, and experience level already exists.",
+                success: false
+            });
+        }
 
         // Create Job
         const job = await Job.create({
@@ -141,11 +188,18 @@ export const postJob = async (req, res) => {
             description: description.trim(),
             requirements: requirementsArray.map((requirement) => String(requirement).trim()).filter(Boolean),
             salary: parsedSalary,
+            salaryMin: parsedSalaryMin,
+            salaryMax: parsedSalaryMax,
+            salaryUnit: typeof salaryUnit === "string" && salaryUnit.trim() ? salaryUnit.trim() : "LPA",
             location: canonicalLocations[0],
             country: "India",
             jobType: normalizedJobType,
             experienceLevel: parsedExperience,
             position: parsedPosition,
+            responsibilities: responsibilityList.map((item) => String(item).trim()).filter(Boolean),
+            qualification: typeof qualification === "string" ? qualification.trim() : "",
+            workMode: workMode || "On-site",
+            ...(parsedDeadline ? { applicationDeadline: parsedDeadline } : {}),
             company: companyId,
             created_by: userId
         });
@@ -184,18 +238,28 @@ export const getAllJobs = async (req, res) => {
             const tokenPatterns = keywordTokens.map(getSearchPatterns);
             const matchingCompanies = await Company.find({
                 $or: tokenPatterns.flatMap((patterns) => patterns.map((pattern) => ({
-                    name: { $regex: pattern, $options: "i" }
+                    $or: [
+                        { name: { $regex: pattern, $options: "i" } },
+                        { industry: { $regex: pattern, $options: "i" } }
+                    ]
                 })))
-            }).select("_id name");
+            }).select("_id name industry");
             const searchConditions = keywordTokens.map((token, index) => {
                 const patterns = tokenPatterns[index];
                 const conditions = patterns.flatMap((pattern) => [
                     { title: { $regex: pattern, $options: "i" } },
                     { description: { $regex: pattern, $options: "i" } },
-                    { requirements: { $regex: pattern, $options: "i" } }
+                    { requirements: { $regex: pattern, $options: "i" } },
+                    { jobId: { $regex: pattern, $options: "i" } },
+                    { location: { $regex: pattern, $options: "i" } },
+                    { locations: { $regex: pattern, $options: "i" } },
+                    { jobType: { $regex: pattern, $options: "i" } }
                 ]);
                 const matchingCompanyIds = matchingCompanies
-                    .filter((company) => patterns.some((pattern) => new RegExp(pattern, "i").test(company.name)))
+                    .filter((company) => patterns.some((pattern) =>
+                        new RegExp(pattern, "i").test(company.name) ||
+                        new RegExp(pattern, "i").test(company.industry || "")
+                    ))
                     .map((company) => company._id);
 
                 if (matchingCompanyIds.length) {
@@ -232,9 +296,17 @@ export const getAllJobs = async (req, res) => {
                 };
         }
 
-        const jobs = await Job.find(query).populate({
-            path: "company"
-        }).where({ status: { $in: ["Active", null] } }).sort({ createdAt: -1 });
+        const jobs = await Job.find({
+            ...query,
+            status: { $in: ["Active", null] },
+            $and: [
+                ...(query.$and || []),
+                { $or: [{ applicationDeadline: { $exists: false } }, { applicationDeadline: null }, { applicationDeadline: { $gt: new Date() } }] }
+            ]
+        }).populate({
+            path: "company",
+            match: { status: { $in: ["Active", null] } }
+        }).sort({ createdAt: -1 });
         const indianJobs = jobs
             .filter(isEligibleIndianJob)
             .map((job) => {
@@ -273,7 +345,10 @@ export const getJobById = async (req, res) => {
 
         const job = await Job.findById(jobId)
             .populate({ path: "applications", select: "applicant" })
-            .populate("company");
+            .populate({
+                path: "company",
+                match: { status: { $in: ["Active", null] } }
+            });
 
         if (!job) {
             return res.status(404).json({
@@ -281,7 +356,8 @@ export const getJobById = async (req, res) => {
                 success: false
             });
         }
-        if (job.status && job.status !== "Active") {
+        if ((job.status && job.status !== "Active") ||
+            (job.applicationDeadline && job.applicationDeadline <= new Date())) {
             return res.status(404).json({
                 message: "Job not found.",
                 success: false
@@ -383,7 +459,14 @@ export const updateJob = async (req, res) => {
             experience,
             position,
             companyId,
-            country
+            country,
+            responsibilities,
+            qualification,
+            workMode,
+            salaryMin,
+            salaryMax,
+            salaryUnit,
+            applicationDeadline
         } = req.body;
 
         const job = await Job.findById(jobId).select("+jobIdLegacyNormalized");
@@ -459,6 +542,46 @@ export const updateJob = async (req, res) => {
             }
             job.salary = parsedSalary;
         }
+        for (const [field, value] of [["salaryMin", salaryMin], ["salaryMax", salaryMax]]) {
+            if (value === undefined) continue;
+            const parsedValue = Number(value);
+            if (!Number.isFinite(parsedValue) || parsedValue < 0) {
+                return res.status(400).json({ message: "Salary range must contain non-negative numbers.", success: false });
+            }
+            job[field] = parsedValue;
+        }
+        if (job.salaryMin !== undefined && job.salaryMax !== undefined && job.salaryMax < job.salaryMin) {
+            return res.status(400).json({ message: "Maximum salary must be greater than or equal to minimum salary.", success: false });
+        }
+        if (salaryUnit !== undefined) {
+            if (typeof salaryUnit !== "string" || salaryUnit.trim().length > 30) {
+                return res.status(400).json({ message: "Salary unit must be 30 characters or fewer.", success: false });
+            }
+            job.salaryUnit = salaryUnit.trim() || "LPA";
+        }
+        if (workMode !== undefined) {
+            if (!["Remote", "Hybrid", "On-site"].includes(workMode)) {
+                return res.status(400).json({ message: "Choose Remote, Hybrid, or On-site as the work mode.", success: false });
+            }
+            job.workMode = workMode;
+        }
+        if (qualification !== undefined) {
+            if (typeof qualification !== "string" || qualification.length > 200) {
+                return res.status(400).json({ message: "Qualification must be 200 characters or fewer.", success: false });
+            }
+            job.qualification = qualification.trim();
+        }
+        if (responsibilities !== undefined) {
+            const list = Array.isArray(responsibilities) ? responsibilities : String(responsibilities).split(/\r?\n/);
+            job.responsibilities = list.map((item) => String(item).trim()).filter(Boolean);
+        }
+        if (applicationDeadline !== undefined) {
+            const deadline = applicationDeadline ? new Date(applicationDeadline) : null;
+            if (deadline && Number.isNaN(deadline.getTime())) {
+                return res.status(400).json({ message: "Choose a valid application deadline.", success: false });
+            }
+            job.applicationDeadline = deadline || undefined;
+        }
         if (experience !== undefined) {
             const parsedExperience = Number(experience);
             if (!Number.isFinite(parsedExperience) || parsedExperience < 0) {
@@ -510,6 +633,19 @@ export const updateJob = async (req, res) => {
         if (duplicate) {
             return res.status(409).json({
                 message: DUPLICATE_JOB_ID_MESSAGE,
+                success: false
+            });
+        }
+        const duplicatePosting = await findDuplicateJobPosting({
+            company: job.company,
+            title: job.title,
+            location: job.location,
+            experience: job.experienceLevel,
+            excludeId: job._id
+        });
+        if (duplicatePosting) {
+            return res.status(409).json({
+                message: "A job with this company, title, location, and experience level already exists.",
                 success: false
             });
         }
@@ -615,5 +751,75 @@ export const deleteJob = async (req, res) => {
             message: "Failed to delete job.",
             success: false
         });
+    }
+};
+
+// Search suggestions for student and general search bar
+export const getSearchSuggestions = async (req, res) => {
+    try {
+        const query = String(req.query.q || req.query.query || "").trim().slice(0, 50);
+        if (!query || query.length < 2) {
+            return res.status(200).json({ suggestions: [], success: true });
+        }
+
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        const regex = new RegExp(escaped, "i");
+
+        const [jobs, companies] = await Promise.all([
+            Job.find({
+                status: { $in: ["Active", null] },
+                $or: [
+                    { title: regex },
+                    { jobId: regex },
+                    { location: regex },
+                    { locations: regex },
+                    { requirements: regex },
+                    { jobType: regex }
+                ]
+            })
+                .select("title jobId location locations requirements jobType")
+                .limit(15)
+                .lean(),
+            Company.find({
+                $or: [
+                    { name: regex },
+                    { industry: regex }
+                ]
+            })
+                .select("name industry")
+                .limit(5)
+                .lean()
+        ]);
+
+        const suggestionsSet = new Set();
+
+        jobs.forEach((j) => {
+            if (j.title && regex.test(j.title)) suggestionsSet.add(j.title);
+            if (j.jobId && regex.test(j.jobId)) suggestionsSet.add(`Job ID: ${j.jobId}`);
+            if (j.location && regex.test(j.location)) suggestionsSet.add(j.location);
+            if (Array.isArray(j.locations)) {
+                j.locations.forEach((loc) => {
+                    if (loc && regex.test(loc)) suggestionsSet.add(loc);
+                });
+            }
+            if (Array.isArray(j.requirements)) {
+                j.requirements.forEach((reqItem) => {
+                    if (reqItem && regex.test(reqItem)) suggestionsSet.add(reqItem);
+                });
+            }
+        });
+
+        companies.forEach((c) => {
+            if (c.name && regex.test(c.name)) suggestionsSet.add(c.name);
+            if (c.industry && regex.test(c.industry)) suggestionsSet.add(c.industry);
+        });
+
+        return res.status(200).json({
+            success: true,
+            suggestions: Array.from(suggestionsSet).slice(0, 8)
+        });
+    } catch (error) {
+        console.error("Search suggestions failed:", error);
+        return res.status(500).json({ message: "Failed to load suggestions", success: false });
     }
 };

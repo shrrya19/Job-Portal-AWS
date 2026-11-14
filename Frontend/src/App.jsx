@@ -33,6 +33,7 @@ import RecruiterDashboard from "./components/admin/RecruiterDashboard";
 import CandidateRanking from "./components/admin/CandidateRanking";
 import RecruiterEvents from "./components/admin/RecruiterEvents";
 import RecruiterEventForm from "./components/admin/RecruiterEventForm";
+import RecruiterProfile from "./components/admin/RecruiterProfile";
 import ProtectedRoute from "./components/admin/ProtectedRoute";
 
 import "./App.css";
@@ -117,6 +118,14 @@ const appRouter = createBrowserRouter([
     ),
   },
   {
+    path: "/admin/profile",
+    element: (
+      <ProtectedRoute>
+        <RecruiterProfile />
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: "/admin/candidates",
     element: (
       <ProtectedRoute>
@@ -190,6 +199,14 @@ const appRouter = createBrowserRouter([
   },
   {
     path: "/admin/jobs/:id/edit",
+    element: (
+      <ProtectedRoute>
+        <PostJob />
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: "/admin/jobs/edit/:id",
     element: (
       <ProtectedRoute>
         <PostJob />

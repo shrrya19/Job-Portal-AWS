@@ -16,6 +16,16 @@ const companySchema = new mongoose.Schema({
     companySize: { type: String, trim: true, maxlength: 40, default: "" },
     contactEmail: { type: String, trim: true, lowercase: true, maxlength: 254, default: "" },
     contactPhone: { type: String, trim: true, maxlength: 40, default: "" },
+    status: {
+        type: String,
+        enum: ["Active", "Inactive"],
+        default: "Active"
+    },
+    isDemoData: {
+        type: Boolean,
+        default: false,
+        select: false
+    },
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'User',

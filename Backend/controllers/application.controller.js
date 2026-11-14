@@ -1,5 +1,6 @@
 import { Application } from "../models/application.model.js"
 import { Job } from "../models/job.model.js"
+import { Company } from "../models/company.model.js"
 import { normalizeApplicationStatus } from "../utils/applicationStatus.js";
 
 export const applyJob = async (req, res) => {
@@ -32,9 +33,20 @@ export const applyJob = async (req, res) => {
                 success: false
             })
         }
-        if (job.status === "Inactive") {
+        if (job.status === "Inactive" || job.status === "Expired" ||
+            (job.applicationDeadline && job.applicationDeadline <= new Date())) {
             return res.status(400).json({
                 message: "This job is no longer accepting applications.",
+                success: false
+            });
+        }
+        const company = await Company.findOne({
+            _id: job.company,
+            status: { $in: ["Active", null] }
+        }).select("_id");
+        if (!company) {
+            return res.status(400).json({
+                message: "This company is not currently accepting applications.",
                 success: false
             });
         }
@@ -53,7 +65,15 @@ export const applyJob = async (req, res) => {
         });
 
         const jobUpdate = await Job.updateOne(
-            { _id: jobId, status: { $in: ["Active", null] } },
+            {
+                _id: jobId,
+                status: { $in: ["Active", null] },
+                $or: [
+                    { applicationDeadline: { $exists: false } },
+                    { applicationDeadline: null },
+                    { applicationDeadline: { $gt: new Date() } }
+                ]
+            },
             { $addToSet: { applications: newApplication._id } }
         );
         if (jobUpdate.matchedCount === 0) {
@@ -168,8 +188,35 @@ export const getApplicants = async (req, res) => {
 
 export const updateStatus = async (req, res) => {
     try {
-        const { status, note, recruiterNotes, interviewDate, interviewTime, interviewMode, offerSalary } = req.body;
+        const {
+            status,
+            note,
+            recruiterNotes,
+            interviewDate,
+            interviewTime,
+            interviewMode,
+            interviewLink,
+            interviewLocation,
+            interviewContact,
+            offerSalary,
+            offerAmount,
+            offerCurrency,
+            offerPeriod
+        } = req.body;
         const applicationId = req.params.id;
+        const hasStageDetails = [
+            interviewDate,
+            interviewTime,
+            interviewMode,
+            interviewLink,
+            interviewLocation,
+            interviewContact,
+            offerSalary,
+            offerAmount,
+            offerCurrency,
+            offerPeriod,
+            note
+        ].some((value) => value !== undefined);
 
         const normalizedStatus = status === undefined ? "" : normalizeApplicationStatus(status);
         const validStages = [
@@ -180,32 +227,68 @@ export const updateStatus = async (req, res) => {
             "interview cleared",
             "interview not cleared",
             "offer issued",
+            "offer extended",
+            "offer accepted",
+            "offer rejected",
             "selected",
+            "hired",
+            "declined",
             "rejected"
         ];
 
         if ((status !== undefined && !validStages.includes(normalizedStatus)) ||
-            (status === undefined && recruiterNotes === undefined)) {
+            (status === undefined && recruiterNotes === undefined && !hasStageDetails)) {
             return res.status(400).json({
-                message: "Choose a valid application status or provide recruiter notes.",
+                message: "Choose a valid application status or provide application details to save.",
                 success: false
             });
         }
-        if (status !== undefined && normalizedStatus === "interview scheduled") {
+        const hasInterviewDetails = [
+            interviewDate,
+            interviewTime,
+            interviewMode,
+            interviewLink,
+            interviewLocation,
+            interviewContact
+        ].some((value) => value !== undefined);
+        if (hasInterviewDetails || (status !== undefined && normalizedStatus === "interview scheduled")) {
             const parsedInterviewDate = new Date(interviewDate);
-            if (!interviewDate || Number.isNaN(parsedInterviewDate.getTime()) || parsedInterviewDate <= new Date() ||
-                typeof interviewTime !== "string" || !interviewTime.trim() ||
-                !["Online", "Offline", "Hybrid"].includes(interviewMode)) {
+            const validInterviewMode = ["Online", "In-person", "Phone", "Offline", "Hybrid"].includes(interviewMode);
+            const validMeetingLink = interviewLink === undefined ||
+                (typeof interviewLink === "string" && interviewLink.length <= 2048 &&
+                (!interviewLink.trim() || (() => {
+                    try {
+                        return ["http:", "https:"].includes(new URL(interviewLink).protocol);
+                    } catch {
+                        return false;
+                    }
+                })()));
+            const interviewDetailsValid =
+                interviewDate && !Number.isNaN(parsedInterviewDate.getTime()) && parsedInterviewDate > new Date() &&
+                typeof interviewTime === "string" &&
+                (/^([01]\d|2[0-3]):[0-5]\d$/.test(interviewTime) || /^(0?[1-9]|1[0-2]):[0-5]\d\s?(AM|PM)$/i.test(interviewTime)) &&
+                validInterviewMode && validMeetingLink &&
+                (interviewMode !== "Online" || (typeof interviewLink === "string" && Boolean(interviewLink.trim()))) &&
+                (interviewMode !== "In-person" || (typeof interviewLocation === "string" && Boolean(interviewLocation.trim()))) &&
+                (interviewMode !== "Phone" || (typeof interviewContact === "string" && Boolean(interviewContact.trim()))) &&
+                (interviewLocation === undefined || (typeof interviewLocation === "string" && interviewLocation.length <= 500)) &&
+                (interviewContact === undefined || (typeof interviewContact === "string" && interviewContact.length <= 100));
+            if (!interviewDetailsValid) {
                 return res.status(400).json({
-                    message: "To schedule an interview, provide a future date and time and choose Online, Offline, or Hybrid.",
+                    message: "Provide a valid future interview date, time, type, and the required type-specific details.",
                     success: false
                 });
             }
         }
-        if (status !== undefined && normalizedStatus === "offer issued" &&
-            (typeof offerSalary !== "string" || !offerSalary.trim() || offerSalary.length > 100)) {
+        const hasStructuredOfferDetails = offerAmount !== undefined || offerCurrency !== undefined || offerPeriod !== undefined;
+        if ((hasStructuredOfferDetails && (
+            typeof offerAmount !== "number" || !Number.isFinite(offerAmount) || offerAmount <= 0 ||
+            !["INR", "USD", "EUR", "GBP", "CAD", "AUD"].includes(offerCurrency) ||
+            !["hourly", "monthly", "annually"].includes(offerPeriod)
+        )) || (offerSalary !== undefined &&
+            (typeof offerSalary !== "string" || !offerSalary.trim() || offerSalary.length > 100))) {
             return res.status(400).json({
-                message: "Enter the offer salary or compensation details before issuing the offer.",
+                message: "Enter valid offer salary or compensation details.",
                 success: false
             });
         }
@@ -238,17 +321,18 @@ export const updateStatus = async (req, res) => {
 
         const currentStatus = normalizeApplicationStatus(application.status);
         const validTransitions = {
-            "interview scheduled": ["shortlisted", "interview scheduled"],
-            "interview cleared": ["interview scheduled"],
+            "interview scheduled": ["applied", "under review", "shortlisted", "interview scheduled"],
+            "interview cleared": ["interview scheduled", "shortlisted"],
             "interview not cleared": ["interview scheduled"],
-            "offer issued": ["interview cleared", "offer issued"]
+            "offer issued": ["applied", "under review", "shortlisted", "interview scheduled", "interview cleared", "offer issued"],
+            "offer accepted": ["offer issued", "selected", "offer accepted"],
+            "offer rejected": ["applied", "under review", "shortlisted", "interview scheduled", "offer issued", "offer rejected"],
+            "rejected": ["applied", "under review", "shortlisted", "interview scheduled", "interview not cleared", "offer issued", "rejected"]
         };
         if (status !== undefined && validTransitions[normalizedStatus] &&
             !validTransitions[normalizedStatus].includes(currentStatus)) {
             return res.status(409).json({
-                message: normalizedStatus === "offer issued"
-                    ? "Issue an offer only after marking the interview as cleared."
-                    : "Update the candidate through the preceding application stage first.",
+                message: "Update the candidate through the preceding application stage first.",
                 success: false
             });
         }
@@ -269,12 +353,17 @@ export const updateStatus = async (req, res) => {
         }
 
         // Update stage details if provided
-        if (interviewDate !== undefined || interviewTime !== undefined || interviewMode !== undefined ||
-            offerSalary !== undefined || note !== undefined) {
+        if (hasStageDetails) {
             if (interviewDate !== undefined) application.stageDetails.interviewDate = interviewDate;
             if (interviewTime !== undefined) application.stageDetails.interviewTime = interviewTime;
             if (interviewMode !== undefined) application.stageDetails.interviewMode = interviewMode;
+            if (interviewLink !== undefined) application.stageDetails.interviewLink = interviewLink.trim();
+            if (interviewLocation !== undefined) application.stageDetails.interviewLocation = interviewLocation.trim();
+            if (interviewContact !== undefined) application.stageDetails.interviewContact = interviewContact.trim();
             if (offerSalary !== undefined) application.stageDetails.offerSalary = offerSalary;
+            if (offerAmount !== undefined) application.stageDetails.offerAmount = offerAmount;
+            if (offerCurrency !== undefined) application.stageDetails.offerCurrency = offerCurrency;
+            if (offerPeriod !== undefined) application.stageDetails.offerPeriod = offerPeriod;
             if (note !== undefined) application.stageDetails.note = note;
         }
 
@@ -282,7 +371,9 @@ export const updateStatus = async (req, res) => {
 
         return res.status(200).json({
             message: status === undefined
-                ? "Recruiter notes saved."
+                ? (recruiterNotes !== undefined && !hasStageDetails
+                    ? "Recruiter notes saved."
+                    : "Application details saved.")
                 : `Candidate moved to "${normalizedStatus}".`,
             application,
             success: true

@@ -5,6 +5,7 @@ import getDataUri from "../utils/datauri.js";
 import cloudinary from "../utils/cloudinary.js";
 import { Job } from "../models/job.model.js";
 import { storeImageSecurely, storeFileSecurely } from "../utils/fileStorage.js";
+import { getRegistrationDuplicateError } from "../utils/registrationDuplicates.js";
 
 const passwordRequirements = /^[A-Z](?=.*\d)(?=.*[^A-Za-z0-9\s]).*$/;
 
@@ -84,6 +85,37 @@ export const register = async (req, res) => {
             });
         }
 
+        const normalizedPhone = phoneValidation.cleanPhone.replace(/\D/g, "");
+        const formattedPhonePattern = new RegExp(
+            `^\\D*${normalizedPhone.split("").join("\\D*")}\\D*$`
+        );
+        const [existingEmail, existingPhone] = await Promise.all([
+            User.findOne({
+                email: {
+                    $regex: `^${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
+                    $options: "i"
+                }
+            }).select("_id fullName"),
+            User.findOne({
+                $or: [
+                    { phoneNumberNormalized: normalizedPhone },
+                    { phoneNumber: { $regex: formattedPhonePattern } }
+                ]
+            }).select("_id fullName")
+        ]);
+
+        const duplicateRegistration = getRegistrationDuplicateError({
+            existingEmail,
+            existingPhone,
+            fullName
+        });
+        if (duplicateRegistration) {
+            return res.status(409).json({
+                ...duplicateRegistration,
+                success: false
+            });
+        }
+
         const file = req.file;
         let profilePhoto = "";
 
@@ -106,26 +138,13 @@ export const register = async (req, res) => {
             }
         }
 
-        const existingUser = await User.findOne({
-            email: {
-                $regex: `^${email.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`,
-                $options: "i"
-            }
-        });
-
-        if (existingUser) {
-            return res.status(400).json({
-                message: "User already exists with this email",
-                success: false
-            });
-        }
-
         const hashedPassword = await bcrypt.hash(password, 10);
 
         await User.create({
             fullName: fullName.trim(),
             email,
             phoneNumber: phoneValidation.cleanPhone,
+            phoneNumberNormalized: normalizedPhone,
             password: hashedPassword,
             role,
             profile: {
@@ -140,11 +159,22 @@ export const register = async (req, res) => {
 
     } catch (error) {
         console.error("REGISTER ERROR:", error);
-        if (error?.code === 11000 && error?.keyPattern?.email) {
-            return res.status(409).json({
-                message: "An account already exists with this email address.",
-                success: false
-            });
+        if (error?.code === 11000) {
+            const duplicateField = error.keyPattern?.email || error.keyValue?.email
+                ? "email"
+                : error.keyPattern?.phoneNumberNormalized || error.keyValue?.phoneNumberNormalized
+                    ? "phoneNumber"
+                    : null;
+            if (duplicateField) {
+                const duplicateRegistration = getRegistrationDuplicateError({
+                    existingEmail: duplicateField === "email" ? true : null,
+                    existingPhone: duplicateField === "phoneNumber" ? true : null
+                });
+                return res.status(409).json({
+                    ...duplicateRegistration,
+                    success: false
+                });
+            }
         }
         return res.status(500).json({
             message: "Server error",
@@ -165,19 +195,33 @@ export const login = async (req, res) => {
         }
 
         const { password, role } = req.body;
-        const email = req.body.email?.trim().toLowerCase();
+        const email = typeof req.body.email === "string" ? req.body.email.trim().toLowerCase() : "";
 
         if (!email || !password || !role) {
             return res.status(400).json({
-                message: "All fields are required",
+                message: "Email, password, and account role are required.",
                 success: false
             });
         }
 
-        let user = await User.findOne({ email });
+        if (!["student", "recruiter"].includes(role)) {
+            return res.status(400).json({
+                message: "Choose a valid account role.",
+                success: false
+            });
+        }
+
+        const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({
                 message: "Invalid email or password",
+                success: false
+            });
+        }
+
+        if (user.accountStatus === "Inactive") {
+            return res.status(403).json({
+                message: "This account is inactive. Contact support for assistance.",
                 success: false
             });
         }
@@ -310,7 +354,25 @@ export const updateProfile = async (req, res) => {
                     success: false
                 });
             }
+            const normalizedPhone = phoneValidation.cleanPhone.replace(/\D/g, "");
+            const formattedPhonePattern = new RegExp(
+                `^\\D*${normalizedPhone.split("").join("\\D*")}\\D*$`
+            );
+            const existingPhone = await User.findOne({
+                _id: { $ne: userId },
+                $or: [
+                    { phoneNumberNormalized: normalizedPhone },
+                    { phoneNumber: { $regex: formattedPhonePattern } }
+                ]
+            }).select("_id");
+            if (existingPhone) {
+                return res.status(409).json({
+                    message: "This phone number is already registered. Please use another phone number.",
+                    success: false
+                });
+            }
             user.phoneNumber = phoneValidation.cleanPhone;
+            user.phoneNumberNormalized = normalizedPhone;
         }
 
         if (!user.profile) {
@@ -380,6 +442,12 @@ export const updateProfile = async (req, res) => {
         if (error?.code === 11000 && error?.keyPattern?.email) {
             return res.status(409).json({
                 message: "That email address is already in use by another account.",
+                success: false
+            });
+        }
+        if (error?.code === 11000 && error?.keyPattern?.phoneNumberNormalized) {
+            return res.status(409).json({
+                message: "This phone number is already registered. Please use another phone number.",
                 success: false
             });
         }

@@ -16,6 +16,12 @@ const userSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    phoneNumberNormalized: {
+        type: String,
+        unique: true,
+        sparse: true,
+        select: false
+    },
     password: {
         type: String,
         required: true
@@ -24,6 +30,16 @@ const userSchema = new mongoose.Schema({
         type: String,
         enum: ['student', 'recruiter'],
         required: true
+    },
+    accountStatus: {
+        type: String,
+        enum: ["Active", "Inactive"],
+        default: "Active"
+    },
+    isDemoData: {
+        type: Boolean,
+        default: false,
+        select: false
     },
     savedJobs: [
         {

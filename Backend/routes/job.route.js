@@ -10,11 +10,13 @@ import {
     getJobById,
     updateJob,
     updateJobStatus,
-    deleteJob
+    deleteJob,
+    getSearchSuggestions
 } from "../controllers/job.controller.js";
 
 const router = express.Router();
 
+router.route("/suggestions").get(getSearchSuggestions);
 router.route("/post").post(isAuthenticated, authorizeRole("recruiter"), postJob);
 router.route("/update/:id").put(isAuthenticated, authorizeRole("recruiter"), updateJob);
 router.route("/status/:id").patch(isAuthenticated, authorizeRole("recruiter"), updateJobStatus);

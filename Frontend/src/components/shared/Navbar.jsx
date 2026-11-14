@@ -72,11 +72,11 @@ function Navbar() {
             </div> */}
 
             <div className="h-12 w-12 shrink-0">
-              <img src={Logo} alt="Career Nest" className="h-full w-full object-contain" />
+              <img src={Logo} alt="Hire Nest" className="h-full w-full object-contain" />
             </div>
 
             <h1 className="text-2xl font-bold tracking-tight text-[#172554] sm:text-3xl">
-              Career <span className="text-violet-700">Nest</span>
+              Hire <span className="text-violet-700">Nest</span>
             </h1>
           </Link>
 
@@ -284,7 +284,7 @@ function Navbar() {
 
                         <p className="text-sm text-gray-500">
                           {user?.profile?.bio ||
-                            "Welcome to CareerNest"}
+                            "Welcome to Hire Nest"}
                         </p>
                       </div>
                     </div>
@@ -336,6 +336,16 @@ function Navbar() {
                         </>
                       )}
 
+                      {user?.role === "recruiter" && (
+                        <Link
+                          to="/admin/profile"
+                          className="flex items-center gap-3 p-2 rounded-lg hover:bg-purple-50 transition-all"
+                        >
+                          <User2 size={18} />
+                          <span>My Profile</span>
+                        </Link>
+                      )}
+
                       <button
                         onClick={logoutHandler}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-red-50 text-red-500 transition-all w-full text-left"
@@ -380,6 +390,9 @@ function Navbar() {
                     <CalendarDays size={16} /> Events
                   </Link>
                   <Link onClick={() => setMobileOpen(false)} className="rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/candidates">Candidate ranking</Link>
+                  <Link onClick={() => setMobileOpen(false)} className="flex items-center gap-2 rounded-lg px-3 py-2 hover:bg-purple-50" to="/admin/profile">
+                    <User2 size={16} /> My Profile
+                  </Link>
                 </>
               ) : (
                 <>

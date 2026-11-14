@@ -28,7 +28,7 @@ const filterData = [
   }
 ]
 
-const FilterCard = ({ filters, onFilterChange }) => {
+const FilterCard = ({ filters, onFilterChange, industries = [] }) => {
   const [availableLocations, setAvailableLocations] = useState([]);
   const [locationDraft, setLocationDraft] = useState(filters.location);
 
@@ -122,6 +122,36 @@ const FilterCard = ({ filters, onFilterChange }) => {
                 );
               })}
             </RadioGroup>
+          </div>
+        ))}
+        <div>
+          <label htmlFor="job-industry-filter" className="font-bold text-lg">Industry</label>
+          <select
+            id="job-industry-filter"
+            value={filters.industry}
+            onChange={(event) => onFilterChange("industry", event.target.value)}
+            className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+          >
+            <option value="">All industries</option>
+            {industries.map((industry) => <option key={industry} value={industry}>{industry}</option>)}
+          </select>
+        </div>
+        {[
+          { key: "jobType", label: "Employment type", values: ["Full-Time", "Part-Time", "Contract", "Internship"] },
+          { key: "workMode", label: "Work mode", values: ["Remote", "Hybrid", "On-site"] },
+          { key: "experience", label: "Experience", values: ["0-1", "1-3", "3-5", "5+"] },
+        ].map(({ key, label, values }) => (
+          <div key={key}>
+            <label htmlFor={`job-${key}-filter`} className="font-bold text-lg">{label}</label>
+            <select
+              id={`job-${key}-filter`}
+              value={filters[key]}
+              onChange={(event) => onFilterChange(key, event.target.value)}
+              className="mt-2 h-10 w-full rounded-lg border border-slate-200 bg-white px-3 text-sm"
+            >
+              <option value="">All</option>
+              {values.map((value) => <option key={value} value={value}>{value === "5+" ? "5+ years" : value}</option>)}
+            </select>
           </div>
         ))}
       </div>

@@ -45,17 +45,17 @@ const CategoryCarausel = () => {
   };
 
   return (
-    <section id="categories" className="scroll-mt-24 bg-white py-14 sm:py-18">
+    <section id="categories" className="scroll-mt-24 bg-white py-14 sm:py-20">
       <div className="mx-auto max-w-7xl px-5 sm:px-8">
         <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
           <div>
-            <p className="text-sm font-semibold uppercase tracking-[0.15em] text-violet-700">Explore opportunities</p>
-            <h2 className="mt-2 text-3xl font-semibold tracking-tight text-[#172554] sm:text-4xl">Browse by category</h2>
+            <p className="text-xs font-bold uppercase tracking-widest text-violet-700">Explore Sectors</p>
+            <h2 className="mt-2 text-3xl font-bold tracking-tight text-[#172554] sm:text-4xl">Popular Job Categories</h2>
           </div>
-          <p className="max-w-md text-sm leading-6 text-slate-500">Explore roles across the fields shaping tomorrow.</p>
+          <p className="max-w-md text-sm leading-6 text-slate-500">Discover roles matching your passion and technical qualifications.</p>
         </div>
 
-        <div className="mt-8 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+        <div className="mt-10 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
           {categories.map(({ name, search, icon: Icon, terms }) => {
             const count = findCount(terms);
             return (
@@ -63,18 +63,18 @@ const CategoryCarausel = () => {
                 key={name}
                 type="button"
                 onClick={() => searchJobs(search)}
-                className="group flex min-h-32 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left transition duration-200 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-md sm:p-5"
+                className="group flex min-h-32 items-start gap-3 rounded-2xl border border-slate-200 bg-white p-5 text-left transition duration-200 hover:-translate-y-1 hover:border-violet-300 hover:shadow-lg"
               >
-                <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition group-hover:bg-violet-700 group-hover:text-white">
-                  <Icon size={20} />
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-violet-50 text-violet-700 transition duration-200 group-hover:bg-violet-700 group-hover:text-white group-hover:scale-105">
+                  <Icon size={22} />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-semibold leading-5 text-slate-900">{name}</span>
-                  <span className="mt-2 block text-xs text-slate-500">
-                    {count} {count === 1 ? "job" : "jobs"}
+                  <span className="block text-sm font-bold leading-snug text-slate-900 group-hover:text-violet-700 transition">{name}</span>
+                  <span className="mt-2 block text-xs font-medium text-slate-500">
+                    {count} {count === 1 ? "Opening" : "Openings"}
                   </span>
                 </span>
-                <ArrowUpRight size={16} className="shrink-0 text-slate-400 transition group-hover:text-violet-700" />
+                <ArrowUpRight size={17} className="shrink-0 text-slate-300 transition group-hover:text-violet-700 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
               </button>
             );
           })}

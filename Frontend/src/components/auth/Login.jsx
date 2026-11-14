@@ -30,10 +30,8 @@ const Login = () => {
   const dispatch = useDispatch();
 
   const changeEventHandler = (e) => {
-    setInput({
-      ...input,
-      [e.target.name]: e.target.value,
-    });
+    const { name, value } = e.target;
+    setInput((current) => ({ ...current, [name]: value }));
   };
 
   const submitHandler = async (e) => {
@@ -153,6 +151,7 @@ const Login = () => {
                         value={input.email}
                         onChange={changeEventHandler}
                         placeholder="Enter your email"
+                        autoComplete="email"
                         className="pl-10 h-12 rounded-xl"
                         required
                       />

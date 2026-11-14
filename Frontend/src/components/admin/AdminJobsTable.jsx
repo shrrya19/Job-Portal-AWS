@@ -41,10 +41,13 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
   const [page, setPage] = useState(1);
   const [sortBy, setSortBy] = useState("newest");
   const filterJobs = allAdminJobs.filter((job) => {
-    const status = job.status || "Active";
+    const expired = job.status === "Expired" ||
+      (job.applicationDeadline && new Date(job.applicationDeadline) <= new Date());
+    const status = expired ? "Expired" : job.status || "Active";
     const matchesStatus = statusFilter === "All Jobs"
       || (statusFilter === "Active Jobs" && status === "Active")
-      || (statusFilter === "Inactive Jobs" && status === "Inactive");
+      || (statusFilter === "Inactive Jobs" && status === "Inactive")
+      || (statusFilter === "Expired Jobs" && status === "Expired");
     const search = searchJobByText?.trim().toLowerCase();
     const matchesSearch = !search
       || job?.title?.toLowerCase().includes(search)
@@ -187,7 +190,11 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
 
         <TableBody>
 
-          {pageJobs.map((job, index) => (
+          {pageJobs.map((job, index) => {
+            const expired = job.status === "Expired" ||
+              (job.applicationDeadline && new Date(job.applicationDeadline) <= new Date());
+            const status = expired ? "Expired" : job.status || "Active";
+            return (
             <motion.tr
               key={job._id}
               initial={{
@@ -227,10 +234,15 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
               </TableCell>
 
               <TableCell>
-                {(job.status || "Active") === "Active" ? (
+                {status === "Active" ? (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-800">
                     <span className="h-1.5 w-1.5 rounded-full bg-green-600" />
                     Active
+                  </span>
+                ) : status === "Expired" ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-2.5 py-1 text-xs font-semibold text-orange-700">
+                    <span className="h-1.5 w-1.5 rounded-full bg-orange-500" />
+                    Expired
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1.5 rounded-full bg-gray-100 px-2.5 py-1 text-xs font-semibold text-gray-600">
@@ -282,17 +294,18 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
 
                     <button
                       type="button"
-                      disabled={updatingStatusId === job._id}
+                      disabled={updatingStatusId === job._id || expired}
                       onClick={() => toggleJobStatus(job)}
+                      title={expired ? "Edit the deadline before reactivating this job." : undefined}
                       className="mt-3 flex w-full items-center gap-2 text-left transition-all hover:text-[#6A38C2] disabled:opacity-50"
                     >
                       <Power size={16} />
                       <span>
                         {updatingStatusId === job._id
                           ? "Updating..."
-                          : (job.status || "Active") === "Active"
+                          : status === "Active"
                             ? "Deactivate job"
-                            : "Activate job"}
+                            : expired ? "Update deadline to reactivate" : "Activate job"}
                       </span>
                     </button>
 
@@ -313,7 +326,8 @@ const AdminJobsTable = ({ statusFilter = "All Jobs" }) => {
               </TableCell>
 
             </motion.tr>
-          ))}
+          );
+          })}
 
         </TableBody>
 

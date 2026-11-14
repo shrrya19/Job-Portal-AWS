@@ -101,7 +101,7 @@ const AdminJobs = () => {
           </div>
 
           <div className="mb-5 flex flex-wrap gap-2">
-            {["All Jobs", "Active Jobs", "Inactive Jobs"].map((filter) => (
+            {["All Jobs", "Active Jobs", "Inactive Jobs", "Expired Jobs"].map((filter) => (
               <button
                 key={filter}
                 type="button"

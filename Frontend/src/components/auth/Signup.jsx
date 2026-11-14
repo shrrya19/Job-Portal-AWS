@@ -31,13 +31,21 @@ const Signup = () => {
     role: "student",
     file: "",
   });
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState("");
 
   const { loading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
+  const clearFieldError = (field) => {
+    setFieldErrors((current) => ({ ...current, [field]: "" }));
+    setFormError("");
+  };
+
   const changeEventHandler = (e) => {
     const { name, value } = e.target;
+    clearFieldError(name);
     if (name === "phoneNumber") {
       // Allow only digits, +, -, (, ), and spaces
       const sanitizedPhone = value.replace(/[^0-9+\-()\s]/g, "");
@@ -74,6 +82,8 @@ const Signup = () => {
 
   const submitHandler = async (e) => {
     e.preventDefault();
+    setFieldErrors({});
+    setFormError("");
 
     if (!PASSWORD_REQUIREMENTS.test(input.password)) {
       toast.error(
@@ -120,13 +130,21 @@ const Signup = () => {
         navigate("/login");
       }
     } catch (error) {
-      console.log(error);
-      toast.error(
-        error?.response?.data?.message ||
-          (error?.request
-            ? "Cannot reach the server. Start the backend and check its database connection."
-            : "Registration failed. Please try again.")
-      );
+      const responseData = error?.response?.data;
+      if (responseData?.errors) {
+        setFieldErrors(responseData.errors);
+        const fieldMessages = Object.values(responseData.errors);
+        if (responseData.message && !fieldMessages.includes(responseData.message)) {
+          setFormError(responseData.message);
+        }
+      } else {
+        toast.error(
+          responseData?.message ||
+            (error?.request
+              ? "Cannot reach the server. Start the backend and check its database connection."
+              : "Registration failed. Please try again.")
+        );
+      }
     } finally {
       dispatch(setLoading(false));
     }
@@ -198,6 +216,7 @@ const Signup = () => {
                         onChange={changeEventHandler}
                         placeholder="Enter your full name"
                         className="pl-10 h-12 rounded-xl"
+                        maxLength={120}
                         required
                       />
 
@@ -224,11 +243,19 @@ const Signup = () => {
                         value={input.email}
                         onChange={changeEventHandler}
                         placeholder="Enter your email"
-                        className="pl-10 h-12 rounded-xl"
+                        className={`pl-10 h-12 rounded-xl ${fieldErrors.email ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                        aria-invalid={Boolean(fieldErrors.email)}
+                        aria-describedby={fieldErrors.email ? "signup-email-error" : undefined}
+                        autoComplete="email"
                         required
                       />
 
                     </div>
+                    {fieldErrors.email && (
+                      <p id="signup-email-error" role="alert" className="mt-1 text-sm text-red-600">
+                        {fieldErrors.email}
+                      </p>
+                    )}
                   </div>
 
                   {/* Phone */}
@@ -254,11 +281,19 @@ const Signup = () => {
                         value={input.phoneNumber}
                         onChange={changeEventHandler}
                         placeholder="e.g. 9876543210 or +91 9876543210"
-                        className="pl-10 h-12 rounded-xl"
+                        className={`pl-10 h-12 rounded-xl ${fieldErrors.phoneNumber ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : ""}`}
+                        aria-invalid={Boolean(fieldErrors.phoneNumber)}
+                        aria-describedby={fieldErrors.phoneNumber ? "signup-phone-error" : undefined}
+                        autoComplete="tel"
                         required
                       />
 
                     </div>
+                    {fieldErrors.phoneNumber && (
+                      <p id="signup-phone-error" role="alert" className="mt-1 text-sm text-red-600">
+                        {fieldErrors.phoneNumber}
+                      </p>
+                    )}
                     {input.phoneNumber && input.phoneNumber.replace(/\D/g, "").length < 10 && (
                       <p className="text-xs text-amber-600 mt-1">
                         Must contain at least 10 digits ({input.phoneNumber.replace(/\D/g, "").length}/10 entered)
@@ -400,6 +435,12 @@ const Signup = () => {
                   </div>
 
                   {/* Button */}
+
+                  {formError && (
+                    <p role="alert" className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                      {formError}
+                    </p>
+                  )}
 
                   {loading ? (
                     <Button
