@@ -1,7 +1,7 @@
 import { useDispatch, useSelector } from "react-redux";
 import { Filter } from "lucide-react";
 import { Button } from "../ui/button";
-import { setEventFilters } from "@/redux/eventSlice";
+import { setEventFilters, resetEventFilters } from "@/redux/eventSlice";
 import {
     Select,
     SelectContent,
@@ -10,12 +10,17 @@ import {
     SelectValue,
 } from "../ui/select";
 
+const DEFAULT_EVENT_FILTERS = { category: "", mode: "", price: "" };
+
 const EventFilter = () => {
     const dispatch = useDispatch();
-    const { category, mode, price } = useSelector((store) => store.event.eventFilters);
+    const eventFilters = useSelector((store) => store.event?.eventFilters) || DEFAULT_EVENT_FILTERS;
+    const category = eventFilters.category || "";
+    const mode = eventFilters.mode || "";
+    const price = eventFilters.price || "";
 
     const resetFilters = () => {
-        dispatch(setEventFilters({ category: "", mode: "", price: "" }));
+        dispatch(resetEventFilters());
     };
 
     return (

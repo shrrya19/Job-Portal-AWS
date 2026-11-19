@@ -3,10 +3,8 @@ import { useSelector } from "react-redux";
 import EventCard from "./EventCard";
 
 const FeaturedEvents = () => {
-    const { allEvents } = useSelector((store) => store.event);
-
-    // Sirf pehle 3 events dikhayenge
-    const featuredEvents = allEvents.slice(0, 3);
+    const allEvents = useSelector((store) => store.event?.allEvents) || [];
+    const featuredEvents = Array.isArray(allEvents) ? allEvents.slice(0, 3) : [];
 
     if (featuredEvents.length === 0) return null;
 

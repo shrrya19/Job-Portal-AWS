@@ -1,10 +1,17 @@
 import { useSelector } from "react-redux";
 import EventCard from "./EventCard";
 
+const DEFAULT_EVENT_FILTERS = { category: "", mode: "", price: "" };
+
 const EventList = () => {
-    const { allEvents, searchEventByText, eventFilters } = useSelector((store) => store.event);
+    const eventState = useSelector((store) => store.event) || {};
+    const allEvents = Array.isArray(eventState.allEvents) ? eventState.allEvents : [];
+    const searchEventByText = typeof eventState.searchEventByText === "string" ? eventState.searchEventByText : "";
+    const eventFilters = eventState.eventFilters || DEFAULT_EVENT_FILTERS;
+
     const query = searchEventByText.trim().toLowerCase();
     const filteredEvents = allEvents.filter((event) => {
+        if (!event) return false;
         const matchesSearch = !query || [
             event.title,
             event.description,
@@ -12,7 +19,7 @@ const EventList = () => {
             event.company?.name,
             event.category,
             event.location,
-        ].some((value) => value?.toLowerCase().includes(query));
+        ].some((value) => typeof value === "string" && value.toLowerCase().includes(query));
         const matchesCategory = !eventFilters.category || event.category === eventFilters.category;
         const matchesMode = !eventFilters.mode || event.mode === eventFilters.mode;
         const matchesPrice = !eventFilters.price ||

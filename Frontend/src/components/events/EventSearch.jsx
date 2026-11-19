@@ -6,7 +6,7 @@ import { setSearchEventByText } from "@/redux/eventSlice";
 
 const EventSearch = () => {
     const dispatch = useDispatch();
-    const search = useSelector((store) => store.event.searchEventByText);
+    const search = useSelector((store) => store.event?.searchEventByText) || "";
 
     const clearSearch = () => {
         dispatch(setSearchEventByText(""));

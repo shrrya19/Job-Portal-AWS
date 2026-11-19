@@ -19,7 +19,7 @@ const AdminEvents = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { allAdminEvents } = useSelector((store) => store.event);
+  const { allAdminEvents = [] } = useSelector((store) => store.event) || {};
 
   useEffect(() => {
     dispatch(setSearchEventByText(input));

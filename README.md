@@ -55,6 +55,13 @@ CareerNest is a full-stack, enterprise-grade student job portal and career prepa
    - [Nginx Reverse Proxy & SSL Configuration](#nginx-reverse-proxy--ssl-configuration)
    - [Security Groups & IAM Roles Configuration](#security-groups--iam-roles-configuration)
 10. [Documentation & Audit Quality](#10-documentation--audit-quality)
+11. [Recent Updates & Engineering Log](#11-recent-updates--engineering-log)
+   - [Brand Identity Alignment (CareerNest)](#brand-identity-alignment-careernest)
+   - [Strict 10-Digit Mobile Number Validation](#strict-10-digit-mobile-number-validation)
+   - [Recruiter Interview Scheduling & Pipeline Sync](#recruiter-interview-scheduling--pipeline-sync)
+   - [Foundit-Inspired Modern Landing Page](#foundit-inspired-modern-landing-page)
+   - [Universal Dashboard Search Engines](#universal-dashboard-search-engines)
+   - [Dedicated Internships Portal & Job Management](#dedicated-internships-portal--job-management)
 
 ---
 
@@ -190,12 +197,12 @@ CareerNest includes a comprehensive suite of features verified against the activ
 
 | Feature Name | Description | User Scope |
 | :--- | :--- | :--- |
-| **Role-Based Authentication & Profiles** | Secure registration and login enforcing strict password policies, Indian phone validation, profile photo uploads, bio management, and role-specific dashboard routing. | Student & Recruiter |
+| **Role-Based Authentication & Profiles** | Secure registration and login enforcing strict password policies, strict 10-digit mobile number validation (`/^[6-9]\d{9}$/`), profile photo uploads, bio management, and role-specific dashboard routing. | Student & Recruiter |
 | **Job & Internship Discovery Board** | Interactive job boards with real-time filtering by role, location, salary, experience, and employment mode. Dedicated `/internships` tab isolates early-career roles from standard full-time jobs. | Student |
 | **Smart Dashboard Search Bars** | Prominent search bars with debounced live suggestions on both student and recruiter dashboards, querying job titles, companies, custom Job IDs, locations, and applicant names. | Student & Recruiter |
 | **ATS Resume Builder & Analyzer** | Extracts text from PDF/DOCX files, evaluates resumes across 5 ATS quality metrics, provides actionable bullet-point rewriting suggestions, and exports ATS-safe resumes to PDF. | Student |
 | **Mock Interview Simulator** | Generates job-tailored technical, scenario, and behavioral questions based on actual job requirements, evaluates answers, and generates STAR-method feedback scores. | Student |
-| **Application Tracking Pipeline** | Live tracking across recruitment stages (`applied` $\rightarrow$ `shortlisted` $\rightarrow$ `interview` $\rightarrow$ `offer extended` $\rightarrow$ `hired`/`declined`), featuring interview scheduling details and offer acceptance actions. | Student & Recruiter |
+| **Application Tracking Pipeline** | Live tracking across recruitment stages (`applied` $\rightarrow$ `shortlisted` $\rightarrow$ `interview scheduled` $\rightarrow$ `offer extended` $\rightarrow$ `hired`/`declined`), featuring synchronized interview scheduling details, meeting links/venues, and student offer acceptance/rejection actions. | Student & Recruiter |
 | **Recruiter Job & Company Management** | Full CRUD capabilities for corporate recruiters to register companies, post jobs with a 3-tier `jobType` dropdown (`Full-Time`, `Contract`, `Internship`), edit listings, and delete roles. | Recruiter |
 | **Candidate Ranking Engine** | Deterministic ATS heuristic scoring ranking applicants against specific job requirements, detecting matched keywords, missing terms, and relevant education/experience evidence. | Recruiter |
 | **Campus Career Events Hub** | Recruiter event creation and management interface paired with a student-facing event discovery and one-click registration portal with capacity enforcement. | Student & Recruiter |
@@ -781,3 +788,65 @@ This documentation reflects the actual verified state of the CareerNest codebase
 - **Application Name:** CareerNest (Student Job Portal)
 - **Engineered for:** Academic Project Evaluation, Technical Demonstrations, and Cloud Production Deployment.
 - **License:** ISC License. Open for academic evaluation and portfolio presentation.
+
+---
+
+## 11. Recent Updates & Engineering Log
+
+This section documents the latest architectural enhancements, feature implementations, and reliability updates engineered into the CareerNest platform.
+
+### Brand Identity Alignment (CareerNest)
+- **Comprehensive Platform Rebranding:** Systematically transitioned the portal from legacy identifiers to **CareerNest – Student Job Portal** across the entire stack.
+- **Global Asset & UI Updates:** Updated header typography, logo assets (`Frontend/src/assets/Logo_Org.png`), browser page titles, student and recruiter navigation drawers, and legal disclaimers.
+- **Consistency Enforcement:** Cleaned up all database schemas, mock seeding records, and test fixtures to reflect CareerNest terminology uniformly.
+
+### Strict 10-Digit Mobile Number Validation
+- **Problem Solved:** Previously, user inputs during registration and profile editing allowed up to 15 alphanumeric characters and arbitrary formatting, causing inconsistent telephone records and internationalization conflicts.
+- **Full-Stack Validation Architecture:**
+  - **Client-Side Real-Time Restriction (`Signup.jsx`, `UpdateProfileDialog.jsx`, `RecruiterProfile.jsx`):**
+    - Enforces numeric-only inputs by sanitizing values on each keystroke: `value.replace(/\D/g, "").slice(0, 10)`.
+    - Hard HTML5 attributes added to input elements: `maxLength={10}`, `inputMode="numeric"`, and `pattern="[6-9][0-9]{9}"`.
+    - Visual feedback indicators inform candidates of remaining digits: `Must be strictly 10 digits (${phoneNumber.length}/10 entered)`.
+    - Rejection of inputs exceeding or falling short of 10 digits upon form submission.
+  - **Server-Side Validation Engine (`user.controller.js`):**
+    - Updated `validatePhoneNumber` utility to normalize standard prefixes (`+91`, `91`, `0`) and ensure the remaining payload contains exactly 10 digits.
+    - Strictly rejects any input where digit count is not equal to 10 with: `"Phone number must be strictly 10 digits (not more than 10)."`.
+    - Validates against Indian standard mobile numbering plans (`/^[6-9]\d{9}$/`), requiring the initial digit to be 6, 7, 8, or 9.
+    - Normalizes telephone records in the database (`phoneNumberNormalized`) to prevent duplicate registrations using alternative formatting.
+
+### Recruiter Interview Scheduling & Pipeline Sync
+- **Problem Solved:** Recruiter-scheduled interviews were previously hidden from the dashboard summary cards and upcoming interview lists when dates coincided with the current day (due to UTC midnight boundary mismatches) or lacked explicit manual stage updates.
+- **Controller-Level Date Normalization (`recruiter.controller.js`):**
+  - Updated `upcomingQuery` to utilize a normalized date threshold (`startOfToday = new Date().setHours(0,0,0,0)`), ensuring same-day interviews are retained.
+  - Expanded the query predicate to evaluate both forward dates (`stageDetails.interviewDate: { $gte: startOfToday }`) and active interview statuses (`status: { $in: ["interview", "interview scheduled"] }`).
+- **Automated Stage Progression (`application.controller.js` & `ApplicantsTable.jsx`):**
+  - Submitting an interview schedule automatically transitions the candidate to `"interview scheduled"` status.
+  - Updates Redux state slices immediately without requiring manual page reloads.
+- **Enhanced Dashboard Visuals (`RecruiterDashboard.jsx`):**
+  - Upcoming interviews card now renders comprehensive metadata: candidate name, interview mode badge (Online / In-person / Phone), scheduled date, formatted time, direct one-click meeting link (`https://...`), or physical venue address.
+
+### Foundit-Inspired Modern Landing Page
+- **Clean Aesthetic & High-Conversion UX (`Home.jsx`):**
+  - Completely re-engineered the landing page inspired by the professional interface of **Foundit.in** (formerly Monster).
+  - **Sticky Navigation Bar:** Dual-role awareness showing student navigation, recruiter workspaces, and mobile slide-out drawer.
+  - **Hero Job Discovery Container:** Multi-field search container supporting:
+    1. Role, skills, or company name search input.
+    2. Geographic location input.
+    3. Experience level dropdown filter.
+    4. Popular quick-search tags (*Software Developer*, *Java Developer*, *Data Analyst*, *Internship*).
+  - **Popular Job Categories Grid:** 8 animated domain cards (*Software Development*, *Web Development*, *Data Science*, *AI*, *Cloud Computing*, *UI/UX*, *Cybersecurity*, *Digital Marketing*) reflecting live job counts.
+  - **Top Hiring Companies Showcase:** Visual brand directory linking directly to corporate profile details and active postings.
+  - **Featured Jobs Feed:** Rich cards displaying verified company badges, salary package tags, experience requirements, and immediate "View Details" / "Apply" CTAs.
+
+### Universal Dashboard Search Engines
+- **Student Dashboard Search (`StudentDashboard.jsx`):**
+  - Prominent search bar allowing candidates to query active jobs across titles, company names, custom Job IDs, skill requirements, job descriptions, and geographic locations.
+  - Features real-time debouncing, clear-query buttons, result count summaries, and seamless integration with existing role filters.
+- **Recruiter Dashboard Search (`RecruiterDashboard.jsx`):**
+  - Enterprise-grade search engine querying jobs and applicants scoped strictly to the authenticated recruiter's organization (`created_by === req.id`).
+  - Allows recruiters to search across job titles, unique alphanumeric Job IDs, locations, candidate names, candidate email addresses, and Application IDs.
+
+### Dedicated Internships Portal & Job Management
+- **Dedicated Internships Route (`/internships`):** Added a dedicated navigation tab and route that exclusively filters for early-career internships, isolating student training roles from senior full-time listings.
+- **Standardized 3-Tier Job Types:** Standardized recruiter job creation and edit forms to enforce a 3-tier classification: `Full-Time`, `Contract`, and `Internship`.
+- **Complete Recruiter Job CRUD:** Corporate recruiters can post new jobs, edit existing postings (`/admin/jobs/edit/:id`), and safely delete outdated positions with cascade cleanup across associated applications.

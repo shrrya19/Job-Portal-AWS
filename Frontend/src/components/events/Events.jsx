@@ -7,12 +7,17 @@ import EventSearch from "./EventSearch";
 import EventFilter from "./EventFilter";
 import EventList from "./EventList";
 
+const DEFAULT_EVENT_FILTERS = { category: "", mode: "", price: "" };
+
 const Events = () => {
     // Fetch all events from backend
     useGetAllEvents();
-    const { searchEventByText, eventFilters } = useSelector((store) => store.event);
+    const eventState = useSelector((store) => store.event) || {};
+    const searchEventByText = typeof eventState.searchEventByText === "string" ? eventState.searchEventByText : "";
+    const eventFilters = eventState.eventFilters || DEFAULT_EVENT_FILTERS;
+
     const hasActiveFilters = Boolean(
-        searchEventByText.trim() || eventFilters.category || eventFilters.mode || eventFilters.price
+        searchEventByText.trim() || eventFilters?.category || eventFilters?.mode || eventFilters?.price
     );
 
     return (
