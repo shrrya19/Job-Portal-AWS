@@ -29,6 +29,11 @@ const RecruiterProfile = () => {
 
   const changeHandler = (event) => {
     const { name, value } = event.target;
+    if (name === "phoneNumber") {
+      const sanitizedPhone = value.replace(/\D/g, "").slice(0, 10);
+      setInput((current) => ({ ...current, phoneNumber: sanitizedPhone }));
+      return;
+    }
     setInput((current) => ({ ...current, [name]: value }));
   };
 
@@ -51,8 +56,12 @@ const RecruiterProfile = () => {
   const submitHandler = async (event) => {
     event.preventDefault();
     const digitsOnly = input.phoneNumber.replace(/\D/g, "");
-    if (digitsOnly.length < 10 || digitsOnly.length > 15) {
-      toast.error("Phone number must contain 10-15 digits.");
+    if (digitsOnly.length !== 10) {
+      toast.error("Phone number must be strictly 10 digits.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(digitsOnly)) {
+      toast.error("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
       return;
     }
 
@@ -169,14 +178,17 @@ const RecruiterProfile = () => {
                       id="recruiter-phone"
                       name="phoneNumber"
                       type="tel"
+                      inputMode="numeric"
+                      maxLength={10}
                       value={input.phoneNumber}
                       onChange={changeHandler}
                       className="h-10 pl-10"
                       autoComplete="tel"
+                      placeholder="Enter 10-digit mobile number"
                       required
                     />
                   </div>
-                  <p className="text-xs text-slate-500">Enter 10-15 digits; spaces and country-code formatting are allowed.</p>
+                  <p className="text-xs text-slate-500">Must be strictly 10 digits (e.g. 9876543210).</p>
                 </div>
                 <div className="space-y-2 sm:col-span-2">
                   <Label htmlFor="recruiter-bio">About me</Label>

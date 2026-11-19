@@ -16,11 +16,15 @@ export const getRecruiterDashboard = async (req, res) => {
             .lean();
         const jobIds = jobs.map(({ _id }) => _id);
         const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 5, 1));
         const upcomingQuery = {
             job: { $in: jobIds },
-            "stageDetails.interviewDate": { $gte: now },
-            status: { $nin: ["rejected", "declined", "offer rejected", "hired", "offer accepted"] }
+            status: { $nin: ["rejected", "declined", "offer rejected", "hired", "offer accepted"] },
+            $or: [
+                { "stageDetails.interviewDate": { $gte: startOfToday } },
+                { status: { $in: ["interview", "interview scheduled"] } }
+            ]
         };
 
         const [statusCounts, jobCounts, monthlyCounts, recentApplications, upcomingInterviews, upcomingInterviewCount] = await Promise.all([

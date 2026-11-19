@@ -47,8 +47,8 @@ const Signup = () => {
     const { name, value } = e.target;
     clearFieldError(name);
     if (name === "phoneNumber") {
-      // Allow only digits, +, -, (, ), and spaces
-      const sanitizedPhone = value.replace(/[^0-9+\-()\s]/g, "");
+      // Allow only digits and strictly max 10 digits
+      const sanitizedPhone = value.replace(/\D/g, "").slice(0, 10);
       setInput((prev) => ({
         ...prev,
         phoneNumber: sanitizedPhone,
@@ -93,12 +93,12 @@ const Signup = () => {
     }
 
     const digitsOnly = input.phoneNumber.replace(/\D/g, "");
-    if (digitsOnly.length < 10) {
-      toast.error("Phone number must contain at least 10 digits.");
+    if (digitsOnly.length !== 10) {
+      toast.error("Phone number must be strictly 10 digits.");
       return;
     }
-    if (digitsOnly.length > 15) {
-      toast.error("Phone number cannot exceed 15 digits.");
+    if (!/^[6-9]\d{9}$/.test(digitsOnly)) {
+      toast.error("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
       return;
     }
 
@@ -262,10 +262,10 @@ const Signup = () => {
 
                   <div className="mb-5">
                     <div className="flex justify-between items-center mb-2">
-                      <Label>
+                      <Label htmlFor="signup-phone">
                         Phone Number
                       </Label>
-                      <span className="text-xs text-gray-400">10-15 digits</span>
+                      <span className="text-xs text-gray-400">Strictly 10 digits</span>
                     </div>
 
                     <div className="relative">
@@ -276,11 +276,15 @@ const Signup = () => {
                       />
 
                       <Input
+                        id="signup-phone"
                         type="tel"
+                        inputMode="numeric"
+                        maxLength={10}
+                        pattern="[6-9][0-9]{9}"
                         name="phoneNumber"
                         value={input.phoneNumber}
                         onChange={changeEventHandler}
-                        placeholder="e.g. 9876543210 or +91 9876543210"
+                        placeholder="Enter 10-digit mobile number (e.g. 9876543210)"
                         className={`pl-10 h-12 rounded-xl ${fieldErrors.phoneNumber ? "border-red-500 focus-visible:border-red-500 focus-visible:ring-red-500/30" : ""}`}
                         aria-invalid={Boolean(fieldErrors.phoneNumber)}
                         aria-describedby={fieldErrors.phoneNumber ? "signup-phone-error" : undefined}
@@ -294,9 +298,9 @@ const Signup = () => {
                         {fieldErrors.phoneNumber}
                       </p>
                     )}
-                    {input.phoneNumber && input.phoneNumber.replace(/\D/g, "").length < 10 && (
+                    {input.phoneNumber && input.phoneNumber.length < 10 && (
                       <p className="text-xs text-amber-600 mt-1">
-                        Must contain at least 10 digits ({input.phoneNumber.replace(/\D/g, "").length}/10 entered)
+                        Must be strictly 10 digits ({input.phoneNumber.length}/10 entered)
                       </p>
                     )}
                   </div>

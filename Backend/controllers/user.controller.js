@@ -17,27 +17,29 @@ const getCookieOptions = () => ({
 
 /**
  * Validates phone numbers:
- * - Accepts standard 10-15 digit formats
- * - Allows leading +, spaces, hyphens, and brackets
- * - Ensures at least 10 pure digits are provided
+ * - Must be strictly 10 digits (no more than 10 digits)
+ * - Normalizes leading +91/91 or 0 prefix if passed
+ * - Ensures valid 10-digit mobile number starting with 6, 7, 8, or 9
  */
 export const validatePhoneNumber = (phone) => {
     if (!phone) {
         return { isValid: false, message: "Phone number is required." };
     }
     const cleanStr = String(phone).trim();
-    const digitsOnly = cleanStr.replace(/\D/g, "");
-    if (digitsOnly.length < 10) {
-        return { isValid: false, message: "Phone number must contain at least 10 digits." };
+    let digitsOnly = cleanStr.replace(/\D/g, "");
+    if (digitsOnly.length === 12 && digitsOnly.startsWith("91")) {
+        digitsOnly = digitsOnly.slice(2);
+    } else if (digitsOnly.length === 11 && digitsOnly.startsWith("0")) {
+        digitsOnly = digitsOnly.slice(1);
     }
-    if (digitsOnly.length > 15) {
-        return { isValid: false, message: "Phone number cannot exceed 15 digits." };
+    if (digitsOnly.length !== 10) {
+        return { isValid: false, message: "Phone number must be strictly 10 digits (not more than 10)." };
     }
-    const phoneRegex = /^(\+?[1-9]\d{0,3}[-.\s]?)?(\(?\d{2,4}\)?[-.\s]?)?[\d\s.-]{7,12}$/;
-    if (!phoneRegex.test(cleanStr)) {
-        return { isValid: false, message: "Please enter a valid phone number (e.g. 9876543210 or +91 9876543210)." };
+    const phoneRegex = /^[6-9]\d{9}$/;
+    if (!phoneRegex.test(digitsOnly)) {
+        return { isValid: false, message: "Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9." };
     }
-    return { isValid: true, cleanPhone: cleanStr };
+    return { isValid: true, cleanPhone: digitsOnly };
 };
 
 // ================= REGISTER =================

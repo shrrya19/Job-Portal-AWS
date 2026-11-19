@@ -36,7 +36,7 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
   const changeEventHandler = (e) => {
     const { name, value } = e.target;
     if (name === "phoneNumber") {
-      const sanitizedPhone = value.replace(/[^0-9+\-()\s]/g, "");
+      const sanitizedPhone = value.replace(/\D/g, "").slice(0, 10);
       setInput((prev) => ({ ...prev, phoneNumber: sanitizedPhone }));
       return;
     }
@@ -52,8 +52,12 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
     e.preventDefault();
 
     const digitsOnly = String(input.phoneNumber).replace(/\D/g, "");
-    if (digitsOnly.length < 10 || digitsOnly.length > 15) {
-      toast.error("Phone number must contain 10-15 digits.");
+    if (digitsOnly.length !== 10) {
+      toast.error("Phone number must be strictly 10 digits.");
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(digitsOnly)) {
+      toast.error("Please enter a valid 10-digit mobile number starting with 6, 7, 8, or 9.");
       return;
     }
     if (!input.fullName.trim() || !input.email.trim()) {
@@ -143,14 +147,16 @@ const UpdateProfileDialog = ({ open, setOpen }) => {
                     id="number"
                     name="phoneNumber"
                     type="tel"
+                    inputMode="numeric"
+                    maxLength={10}
                     value={input.phoneNumber}
                     onChange={changeEventHandler}
-                    placeholder="10-15 digit phone number"
+                    placeholder="Enter 10-digit mobile number"
                     required
                   />
                   {input.phoneNumber && input.phoneNumber.replace(/\D/g, "").length < 10 && (
                     <span className="text-[11px] text-amber-600">
-                      Must have at least 10 digits ({input.phoneNumber.replace(/\D/g, "").length}/10)
+                      Must be strictly 10 digits ({input.phoneNumber.replace(/\D/g, "").length}/10 entered)
                     </span>
                   )}
                 </div>
